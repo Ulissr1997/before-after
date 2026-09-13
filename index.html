@@ -8,9 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Before / After">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" media="print" onload="this.media=&#39;all&#39;"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Anton&family=Playfair+Display:wght@700&family=Caveat:wght@700&display=swap">
+<style>
+  @font-face{font-family:"Inter";src:url("inter-400.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Inter";src:url("inter-600.woff2") format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"Anton";src:url("anton-400.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Playfair Display";src:url("playfair-700.woff2") format("woff2");font-weight:700;font-display:swap}
+  @font-face{font-family:"Caveat";src:url("caveat-700.woff2") format("woff2");font-weight:700;font-display:swap}
+</style>
 <style>
   :root{
     --ink:#171A1C; --stage:#0E1112; --panel:#FFFFFF; --line:#D8DDDC;
@@ -33,6 +37,16 @@
   }
   canvas.dragging{cursor:grabbing}
 
+  .stage{position:relative}
+  .expand{
+    position:absolute;top:22px;right:22px;width:44px;height:44px;border:0;border-radius:22px;
+    background:rgba(20,24,26,.62);color:#fff;font-size:17px;line-height:1;cursor:pointer;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  }
+  .app.full .tabs,.app.full .panel,.app.full .bar,.app.full .side{display:none}
+  .app.full .stage{padding:0}
+  .app.full .expand{display:block;top:calc(14px + env(safe-area-inset-top));right:14px}
+  .app.full canvas{border-radius:0;box-shadow:none}
   .tabs{flex:0 0 auto;display:flex;background:var(--panel);border-bottom:1px solid var(--line)}
   .tabs button{
     flex:1 1 0;min-width:0;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;
@@ -68,7 +82,8 @@
   .spots i{visibility:hidden}
 
   input[type=range]{display:block;width:100%;margin:0;accent-color:var(--accent);height:26px}
-  input[type=text]{width:100%;font:inherit;font-size:16px;height:var(--tap);padding:0 12px;border:1px solid var(--line);border-radius:3px;background:var(--field);color:var(--ink)}
+  input[type=text],textarea{width:100%;font:inherit;font-size:16px;height:var(--tap);padding:0 12px;border:1px solid var(--line);border-radius:3px;background:var(--field);color:var(--ink)}
+  textarea{height:66px;padding:10px 12px;resize:none;line-height:1.3}
   .duo{display:flex;gap:10px;align-items:center}
   .duo > *{flex:1 1 0;min-width:0}
   input[type=color]{flex:0 0 56px;width:56px;height:var(--tap);padding:2px;border:1px solid var(--line);border-radius:3px;background:var(--field)}
@@ -99,6 +114,9 @@
   .chip button.x{color:var(--muted);font-size:16px;padding:8px 12px 8px 6px}
 
   .bar{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .barrow{display:flex;gap:10px}
+  .bar .undo{flex:0 0 88px;width:88px;background:var(--field);color:var(--ink);border:1px solid var(--line)}
+  .bar .undo:disabled{color:#9AA3A1;background:var(--field)}
   .bar button{width:100%;height:52px;border:0;border-radius:3px;background:var(--accent);color:#F2F7F6;font:inherit;font-weight:600;cursor:pointer}
   .bar button:disabled{background:var(--field);color:#9AA3A1;cursor:not-allowed}
   .bar p{margin:8px 0 0;font-size:12px;color:var(--muted);text-align:center;min-height:1em}
@@ -113,7 +131,8 @@
 </style>
 
 <div class="app">
-  <div class="stage"><canvas id="cv" width="1080" height="1080"></canvas></div>
+  <div class="stage"><canvas id="cv" width="1080" height="1080"></canvas>
+      <button class="expand" id="expand" aria-label="Expand preview">⤡</button></div>
 
   <div class="side">
     <div class="tabs" role="tablist">
@@ -186,6 +205,10 @@
           <span class="lab">Gap between photos <b id="gapV">10</b></span>
           <input type="range" id="gap" min="0" max="60" value="10">
         </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="guides"> Show what Instagram covers</label>
+          <p class="hint" id="guideHint">Preview only — never part of the saved image.</p>
+        </div>
         <div class="field" id="fieldBg">
           <span class="lab">Background colour</span>
           <div class="duo"><input type="color" id="bg" value="#ffffff" aria-label="Background colour"></div>
@@ -224,13 +247,13 @@
         <div class="field" id="fieldLabels">
           <span class="lab">Label text</span>
           <div class="duo">
-            <input type="text" id="txtA" value="Before" aria-label="First label">
-            <input type="text" id="txtB" value="After" aria-label="Second label">
+            <textarea id="txtA" rows="2" aria-label="First label">Before</textarea>
+            <textarea id="txtB" rows="2" aria-label="Second label">After</textarea>
           </div>
         </div>
         <div class="field" id="fieldCaption" hidden>
           <span class="lab">Caption on photo</span>
-          <input type="text" id="caption" placeholder="Leave empty for none" aria-label="Caption">
+          <textarea id="caption" rows="2" placeholder="Leave empty for none" aria-label="Caption"></textarea>
         </div>
         <div class="field">
           <span class="lab">Typeface</span>
@@ -265,7 +288,7 @@
             <button data-v="bc" aria-pressed="false">Bottom</button>
             <button data-v="br" aria-pressed="false">Bottom right</button>
           </div>
-          <p class="hint">Or drag the text straight on the preview. Each label moves on its own.</p>
+          <p class="hint">Or drag the text straight on the preview. Press return in a text box for a second line.</p>
         </div>
         <div class="field">
           <span class="lab">Text colour</span>
@@ -310,6 +333,10 @@
           <p class="hint">The logo can be dragged on the preview too.</p>
         </div>
         <div class="field">
+          <span class="lab">Logo opacity <b id="logoAlphaV">100%</b></span>
+          <input type="range" id="logoAlpha" min="20" max="100" value="100">
+        </div>
+        <div class="field">
           <span class="lab">Saved looks</span>
           <div class="chips" id="presets"></div>
           <button class="ghost" id="savePreset" style="margin-top:10px">Save this look</button>
@@ -320,7 +347,10 @@
     </div>
 
     <div class="bar">
-      <button id="save" disabled>Add two photos first</button>
+      <div class="barrow">
+        <button class="undo" id="undo" disabled aria-label="Undo">Undo</button>
+        <button id="save" disabled>Add two photos first</button>
+      </div>
       <p id="status"></p>
     </div>
   </div>
@@ -342,11 +372,11 @@ const DEFAULTS = {
   font:'sans', textSize:8,
   positions:{ a:{x:0,y:1}, b:{x:0,y:1}, c:{x:0,y:1} },
   labelFg:'#ffffff', labelBg:'#121517', labelAlpha:78,
-  logoSize:26,
+  logoSize:26, logoAlpha:100, guides:false,
   logoXY:{ compare:{x:0.5,y:1}, single:{x:1,y:1} }
 };
 const STYLE_KEYS = ['format','layout','gap','bg','fit','labels','txtA','txtB','caption',
-                    'font','textSize','positions','labelFg','labelBg','labelAlpha','logoSize','logoXY'];
+                    'font','textSize','positions','labelFg','labelBg','labelAlpha','logoSize','logoAlpha','logoXY'];
 
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
@@ -376,6 +406,28 @@ function hexToRgba(hex, alpha){
   const n = parseInt(hex.slice(1), 16);
   return 'rgba(' + (n>>16 & 255) + ',' + (n>>8 & 255) + ',' + (n & 255) + ',' + alpha + ')';
 }
+
+/* ---------- undo ---------- */
+const history = [];
+let committed = null;
+function commit(){
+  if (committed){
+    history.push(committed);
+    if (history.length > 40) history.shift();
+  }
+  committed = clone(state);
+  updateUndo();
+}
+function updateUndo(){ $('undo').disabled = !history.length; }
+$('undo').addEventListener('click', () => {
+  const prev = history.pop();
+  if (!prev) return;
+  Object.assign(state, clone(prev));
+  committed = clone(state);
+  applyState(); syncMode(); render();
+  updateUndo();
+  $('status').textContent = '';
+});
 
 /* ---------- tabs ---------- */
 document.querySelector('.tabs').addEventListener('click', e => {
@@ -452,7 +504,7 @@ $('swap').addEventListener('click', () => {
     slot.querySelector('input').value = '';
   });
   applyState();
-  render();
+  render(); commit();
 });
 
 /* ---------- drawing ---------- */
@@ -493,14 +545,20 @@ function roundRect(x,y,w,h,r){
 }
 
 function drawLabel(text, key, px, py, pw, ph){
-  if (!text.trim()) return;
+  const lines = String(text).replace(/\s+$/,'').split('\n');
+  if (!lines.length || !lines.join('').trim()) return;
+
   const face = FONTS[state.font] || FONTS.sans;
   const size = Math.round(Math.min(pw, ph) * state.textSize/100);
   ctx.font = face.weight + ' ' + size + 'px ' + face.css;
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
 
+  const lineH = size * 1.22;
   const padX = size*0.55, padY = size*0.34;
-  const boxW = ctx.measureText(text).width + padX*2, boxH = size + padY*2;
+  const widths = lines.map(l => ctx.measureText(l).width);
+  const boxW = Math.max(...widths) + padX*2;
+  const boxH = size + (lines.length-1)*lineH + padY*2;
+
   const m = Math.round(Math.min(pw, ph) * 0.055);
   const pos = state.positions[key] || {x:0,y:1};
   const spanX = Math.max(0, pw - 2*m - boxW), spanY = Math.max(0, ph - 2*m - boxH);
@@ -520,7 +578,14 @@ function drawLabel(text, key, px, py, pw, ph){
     ctx.shadowOffsetY = size*0.05;
   }
   ctx.fillStyle = state.labelFg;
-  ctx.fillText(text, x + padX, y + boxH/2 + size*0.04);
+  lines.forEach((line, i) => {
+    // lines follow the label's own side of the frame
+    const w = widths[i];
+    const lx = pos.x < 0.34 ? x + padX
+             : pos.x > 0.66 ? x + boxW - padX - w
+             : x + (boxW - w)/2;
+    ctx.fillText(line, lx, y + padY + size/2 + i*lineH);
+  });
   ctx.restore();
 }
 
@@ -533,7 +598,10 @@ function drawLogo(W,H){
   const pos = state.logoXY[state.mode] || {x:0.5,y:1};
   const spanX = Math.max(0, W - 2*m - w), spanY = Math.max(0, H - 2*m - h);
   const x = m + spanX * pos.x, y = m + spanY * pos.y;
+  ctx.save();
+  ctx.globalAlpha = (state.logoAlpha == null ? 100 : state.logoAlpha)/100;
   ctx.drawImage(logo, x, y, w, h);
+  ctx.restore();
   logoBox = { x, y, w, h, m, W, H };
 }
 
@@ -548,7 +616,27 @@ async function ensureFont(){
   } catch(e){}
 }
 
-function render(){
+function drawGuides(W,H){
+  const band = (y, h, text) => {
+    ctx.fillStyle = 'rgba(10,12,13,0.45)';
+    ctx.fillRect(0, y, W, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '600 ' + Math.round(W*0.028) + 'px "Inter", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, W/2, y + h/2);
+    ctx.textAlign = 'left';
+  };
+  if (state.format === 'story'){
+    band(0, 250, 'Instagram covers this');
+    band(H-320, 320, 'Caption and buttons sit here');
+  } else if (state.format === 'portrait'){
+    const strip = (H - W)/2;                 // your profile grid crops back to a square
+    band(0, strip, 'Cut off in your profile grid');
+    band(H-strip, strip, 'Cut off in your profile grid');
+  }
+}
+
+function render(forExport){
   const [W,H] = FORMATS[state.format];
   const single = state.mode === 'single';
   cv.width = W; cv.height = H;
@@ -583,6 +671,8 @@ function render(){
     drawLogo(W,H);
   }
 
+  if (state.guides && !forExport) drawGuides(W,H);
+
   const ready = single ? !!imgs.a : !!(imgs.a && imgs.b);
   $('save').disabled = !ready;
   $('save').textContent = ready ? 'Save image' : single ? 'Add a photo first' : 'Add two photos first';
@@ -598,7 +688,7 @@ function segment(id, key, after){
       b.setAttribute('aria-pressed', String(b === btn)));
     if (key) state[key] = btn.dataset.v;
     if (after) after(btn.dataset.v);
-    render();
+    render(); commit();
   });
 }
 segment('fmt','format'); segment('layout','layout');
@@ -609,7 +699,7 @@ $('mode').addEventListener('click', e => {
   if (btn.dataset.v === 'video'){ location.href = 'video.html'; return; }
   [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
   state.mode = btn.dataset.v;
-  syncMode(); render();
+  syncMode(); render(); commit();
 });
 
 /* ---------- text position ---------- */
@@ -632,7 +722,7 @@ $('textPos').addEventListener('click', e => {
   if (!btn) return;
   const v = btn.dataset.v;
   state.positions[activeKey()] = { x:PRESET[v[1]], y:PRESET[v[0]] };
-  syncPosUI(); render();
+  syncPosUI(); render(); commit();
 });
 
 /* ---------- logo position ---------- */
@@ -652,7 +742,7 @@ function syncLogoUI(){
     const btn = e.target.closest('button');
     if (!btn || !btn.dataset.v) return;
     state.logoXY[state.mode] = { ...LOGO_PRESET[btn.dataset.v] };
-    syncLogoUI(); render();
+    syncLogoUI(); render(); commit();
   });
 });
 
@@ -741,7 +831,7 @@ function endPointer(e){
   if (pointers.size === 0 && drag){
     drag = null;
     cv.classList.remove('dragging');
-    syncPosUI(); syncLogoUI(); persist();
+    syncPosUI(); syncLogoUI(); persist(); commit();
   }
 }
 cv.addEventListener('pointerup', endPointer);
@@ -761,7 +851,9 @@ bind('labelFg', v => state.labelFg = v);
 bind('labelBg', v => state.labelBg = v);
 bind('labelAlpha', v => { state.labelAlpha = +v; $('labelAlphaV').textContent = v + '%'; });
 bind('logoSize', v => { state.logoSize = +v; $('logoSizeV').textContent = v; });
+bind('logoAlpha', v => { state.logoAlpha = +v; $('logoAlphaV').textContent = v + '%'; });
 $('showLabels').addEventListener('change', e => { state.labels = e.target.checked; render(); });
+$('guides').addEventListener('change', e => { state.guides = e.target.checked; render(); });
 $('font').addEventListener('click', async e => {
   const btn = e.target.closest('button');
   if (!btn) return;
@@ -773,7 +865,7 @@ $('font').addEventListener('click', async e => {
 $('recentre').addEventListener('click', () => {
   state.zoom = { a:1, b:1 };
   state.pan = { a:{x:0,y:0}, b:{x:0,y:0} };
-  applyState(); render();
+  applyState(); render(); commit();
 });
 
 /* ---------- saved looks ---------- */
@@ -794,7 +886,7 @@ function drawPresets(){
     use.textContent = preset.name;
     use.addEventListener('click', () => {
       STYLE_KEYS.forEach(k => { if (k in preset.style) state[k] = clone(preset.style[k]); });
-      applyState(); syncMode(); ensureFont().then(render); render();
+      applyState(); syncMode(); ensureFont().then(render); render(); commit();
       $('status').textContent = 'Applied “' + preset.name + '”.';
     });
     const del = document.createElement('button');
@@ -881,6 +973,11 @@ function applyState(){
   $('labelFg').value = state.labelFg; $('labelBg').value = state.labelBg;
   $('labelAlpha').value = state.labelAlpha; $('labelAlphaV').textContent = state.labelAlpha + '%';
   $('logoSize').value = state.logoSize; $('logoSizeV').textContent = state.logoSize;
+  $('logoAlpha').value = state.logoAlpha; $('logoAlphaV').textContent = state.logoAlpha + '%';
+  $('guides').checked = !!state.guides;
+  $('guideHint').textContent = state.format === 'square'
+    ? 'Square posts are not cropped or covered, so there is nothing to show.'
+    : 'Preview only — never part of the saved image.';
   [['mode','mode'],['fmt','format'],['layout','layout']].forEach(([id,key]) =>
     [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state[key]))));
   [...$('font').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state.font)));
@@ -912,13 +1009,15 @@ $('reset').addEventListener('click', () => {
   store.del(KEY);
   Object.assign(state, clone(DEFAULTS));
   clearSlot('logo');
-  applyState(); syncMode(); render();
+  applyState(); syncMode(); render(); commit();
   $('status').textContent = 'Settings reset. Saved looks were kept.';
 });
 
 /* ---------- export ---------- */
 $('save').addEventListener('click', async () => {
+  render(true);                                  // guides are never exported
   const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+  render();
   if (!blob){ $('status').textContent = 'The export failed. Try a smaller photo.'; return; }
   const name = 'before-after-' + state.format + '.jpg';
   const file = new File([blob], name, {type:'image/jpeg'});
@@ -941,6 +1040,9 @@ if ('serviceWorker' in navigator)
     try { navigator.serviceWorker.register('sw.js').catch(()=>{}); } catch(e){}
   });
 
+document.querySelectorAll('.panel input, .panel textarea').forEach(el =>
+  el.addEventListener('change', commit));
+
 restoreSettings();
 const wanted = location.hash.replace('#','');
 if (wanted === 'compare' || wanted === 'single') state.mode = wanted;
@@ -948,7 +1050,18 @@ applyState();
 syncMode();
 drawPresets();
 render();
+committed = clone(state);
 restoreLogo().then(render);
 ensureFont().then(render);
 if (document.fonts) document.fonts.ready.then(render);
+/* ---------- full-screen preview ---------- */
+const shell = document.querySelector('.app');
+function setFull(on){
+  shell.classList.toggle('full', on);
+  const btn = document.getElementById('expand');
+  btn.textContent = on ? '\u2715' : '\u2921';
+  btn.setAttribute('aria-label', on ? 'Close full screen' : 'Expand preview');
+}
+document.getElementById('expand').addEventListener('click', () => setFull(!shell.classList.contains('full')));
+addEventListener('keydown', e => { if (e.key === 'Escape') setFull(false); });
 </script>

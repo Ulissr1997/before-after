@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
+  @font-face{font-family:"Inter";src:url("inter-400.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Inter";src:url("inter-600.woff2") format("woff2");font-weight:600;font-display:swap}
   :root{
     --ink:#171A1C; --stage:#0E1112; --panel:#FFFFFF; --line:#D8DDDC;
     --muted:#5C666B; --accent:#0E5F5B; --field:#F1F3F2; --tap:46px;
@@ -21,6 +23,16 @@
   canvas{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;cursor:grab;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
   canvas.dragging{cursor:grabbing}
 
+  .stage{position:relative}
+  .expand{
+    position:absolute;top:22px;right:22px;width:44px;height:44px;border:0;border-radius:22px;
+    background:rgba(20,24,26,.62);color:#fff;font-size:17px;line-height:1;cursor:pointer;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  }
+  .app.full .tabs,.app.full .panel,.app.full .bar,.app.full .side{display:none}
+  .app.full .stage{padding:0}
+  .app.full .expand{display:block;top:calc(14px + env(safe-area-inset-top));right:14px}
+  .app.full canvas{border-radius:0;box-shadow:none}
   .panel{flex:0 0 auto;max-height:46dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--panel);padding:14px 16px 18px}
   .field{margin:0 0 16px;min-width:0}
   .field:last-child{margin-bottom:0}
@@ -47,6 +59,8 @@
   .spots i{visibility:hidden}
 
   input[type=range]{display:block;width:100%;margin:0;accent-color:var(--accent);height:26px}
+  .check{display:flex;align-items:center;gap:10px;font-size:15px;min-height:var(--tap);cursor:pointer}
+  .check input{accent-color:var(--accent);width:20px;height:20px;flex:0 0 20px}
   .hint{font-size:12px;color:var(--muted);margin:10px 0 0}
   .warn{font-size:13px;color:#8A3A2E;background:#FBEDEA;border:1px solid #F0D2CB;border-radius:3px;padding:10px;margin:0 0 14px}
 
@@ -69,7 +83,8 @@
 </style>
 
 <div class="app">
-  <div class="stage"><canvas id="cv" width="1080" height="1080"></canvas></div>
+  <div class="stage"><canvas id="cv" width="1080" height="1080"></canvas>
+      <button class="expand" id="expand" aria-label="Expand preview">⤡</button></div>
 
   <div class="side">
     <div class="panel">
@@ -126,6 +141,18 @@
         <input type="range" id="logoAlpha" min="20" max="100" value="100">
       </div>
 
+      <div class="field" id="fieldTrim" hidden>
+        <span class="lab">Trim <b id="trimV">whole clip</b></span>
+        <input type="range" id="trimStart" min="0" max="100" step="0.1" value="0" aria-label="Start">
+        <input type="range" id="trimEnd" min="0" max="100" step="0.1" value="100" aria-label="End" style="margin-top:8px">
+        <p class="hint">Recording runs in real time, so a shorter cut exports faster.</p>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" id="guides"> Show what Instagram covers</label>
+        <p class="hint">Preview only — never part of the exported video.</p>
+      </div>
+
       <div class="field" id="progressWrap" hidden>
         <div class="track"><i id="progressBar"></i></div>
         <span class="lab" id="progressText">Recording…</span>
@@ -164,7 +191,8 @@ video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;op
 document.body.appendChild(video);
 
 let logo = null;
-let state = { pos:{x:1,y:1}, size:20, alpha:100 };
+let state = { pos:{x:1,y:1}, size:20, alpha:100, guides:false };
+let trim = { start:0, end:0 };
 let logoBox = null, recording = false, audioWired = null, activeStream = null, startedAt = 0;
 
 /* ---------- capability check ---------- */
@@ -184,6 +212,7 @@ function loadState(){
   } catch(e){}
   $('logoSize').value = state.size;   $('logoSizeV').textContent = state.size;
   $('logoAlpha').value = state.alpha; $('logoAlphaV').textContent = state.alpha + '%';
+  $('guides').checked = !!state.guides;
   syncSpots();
 }
 
@@ -227,6 +256,7 @@ document.querySelectorAll('.pick input').forEach(inp => {
       }
       $('status').textContent = '';
       sizeCanvas();
+      setupTrim();
       video.currentTime = 0.05;                 // show a real frame, not black
       fillSlot('V', '', file.name);
       $('thumbV').style.background = '#2A3133';
@@ -304,6 +334,23 @@ function draw(){
     ctx.textAlign = 'left';
   }
 
+  if (state.guides && !recording && video.videoWidth){
+    const tall = H/W > 1.5;                        // story-shaped clip
+    const band = (y, h, text) => {
+      ctx.fillStyle = 'rgba(10,12,13,0.45)';
+      ctx.fillRect(0, y, W, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.font = '600 ' + Math.round(W*0.032) + 'px "Inter", system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, W/2, y + h/2);
+      ctx.textAlign = 'left';
+    };
+    const top = Math.round(H * (tall ? 0.13 : 0.08));
+    const bottom = Math.round(H * (tall ? 0.17 : 0.10));
+    band(0, top, 'Instagram covers this');
+    band(H-bottom, bottom, 'Caption and buttons sit here');
+  }
+
   logoBox = null;
   if (logo){
     const w = W * state.size/100, h = logo.height * (w / logo.width);
@@ -323,6 +370,38 @@ function loop(){
   draw();
   rafId = requestAnimationFrame(loop);
 }
+
+/* ---------- trim ---------- */
+const secs = n => (n < 60 ? n.toFixed(1) + 's'
+  : Math.floor(n/60) + ':' + String(Math.round(n%60)).padStart(2,'0'));
+
+function setupTrim(){
+  const d = video.duration;
+  if (!isFinite(d) || !d){ $('fieldTrim').hidden = true; return; }
+  trim = { start:0, end:d };
+  ['trimStart','trimEnd'].forEach(id => { $(id).max = d; $(id).step = Math.min(0.1, d/500); });
+  $('trimStart').value = 0; $('trimEnd').value = d;
+  $('fieldTrim').hidden = false;
+  showTrim();
+}
+function showTrim(){
+  const len = trim.end - trim.start;
+  $('trimV').textContent = (trim.start === 0 && Math.abs(trim.end - video.duration) < 0.05)
+    ? 'whole clip · ' + secs(video.duration)
+    : secs(trim.start) + ' → ' + secs(trim.end) + ' · ' + secs(len);
+}
+$('trimStart').addEventListener('input', e => {
+  trim.start = Math.min(+e.target.value, trim.end - 0.5);
+  e.target.value = trim.start;
+  showTrim();
+  if (!recording) video.currentTime = trim.start;
+});
+$('trimEnd').addEventListener('input', e => {
+  trim.end = Math.max(+e.target.value, trim.start + 0.5);
+  e.target.value = trim.end;
+  showTrim();
+  if (!recording) video.currentTime = trim.end;
+});
 
 /* ---------- placement ---------- */
 const SPOT = { tl:{x:0,y:0}, tr:{x:1,y:0}, c:{x:0.5,y:0.5}, bl:{x:0,y:1}, br:{x:1,y:1} };
@@ -376,6 +455,7 @@ $('logoSize').addEventListener('input', e => {
   state.size = +e.target.value; $('logoSizeV').textContent = e.target.value;
   saveState(); draw();
 });
+$('guides').addEventListener('change', e => { state.guides = e.target.checked; saveState(); draw(); });
 $('logoAlpha').addEventListener('input', e => {
   state.alpha = +e.target.value; $('logoAlphaV').textContent = e.target.value + '%';
   saveState(); draw();
@@ -474,7 +554,7 @@ $('go').addEventListener('click', async () => {
   try { await playPromise; }
   catch(e){ $('status').textContent = 'The video would not start playing.'; recording = false; releaseStream(); updateButton(); return; }
 
-  await seekTo(0);              // a finished clip sits at the end — rewind and wait for it
+  await seekTo(trim.start);     // a finished clip sits at the end — rewind and wait for it
   if (!rafId) loop();
   startedAt = Date.now();
   recorder.start(1000);
@@ -482,10 +562,11 @@ $('go').addEventListener('click', async () => {
 
 video.addEventListener('timeupdate', () => {
   if (!recording || !video.duration) return;
-  const pct = Math.min(100, video.currentTime / video.duration * 100);
-  $('progressBar').style.width = pct + '%';
-  $('progressText').textContent = 'Recording — ' +
-    Math.ceil(video.duration - video.currentTime) + 's left';
+  const len = Math.max(0.1, trim.end - trim.start);
+  const done = Math.min(len, Math.max(0, video.currentTime - trim.start));
+  $('progressBar').style.width = (done/len*100) + '%';
+  $('progressText').textContent = 'Recording — ' + Math.ceil(len - done) + 's left';
+  if (video.currentTime >= trim.end - 0.05 && recorder && Date.now() - startedAt > 700) recorder.stop();
 });
 video.addEventListener('ended', () => {
   // ignore the stray 'ended' that can fire while we're still rewinding
@@ -522,4 +603,14 @@ restoreLogo();
 updateButton();
 if ('serviceWorker' in navigator)
   addEventListener('load', () => { try { navigator.serviceWorker.register('sw.js').catch(()=>{}); } catch(e){} });
+/* ---------- full-screen preview ---------- */
+const shell = document.querySelector('.app');
+function setFull(on){
+  shell.classList.toggle('full', on);
+  const btn = document.getElementById('expand');
+  btn.textContent = on ? '\u2715' : '\u2921';
+  btn.setAttribute('aria-label', on ? 'Close full screen' : 'Expand preview');
+}
+document.getElementById('expand').addEventListener('click', () => setFull(!shell.classList.contains('full')));
+addEventListener('keydown', e => { if (e.key === 'Escape') setFull(false); });
 </script>

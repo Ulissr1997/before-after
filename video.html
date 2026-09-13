@@ -289,13 +289,36 @@ const FONTS = {
   serif:   { css:'"Playfair Display", Georgia, serif', weight:700 },
   script:  { css:'"Caveat", cursive',                  weight:700 }
 };
-const GRADES = {
-  none:'none',
-  warm:'saturate(1.15) sepia(0.16) contrast(1.04)',
-  cool:'saturate(1.06) hue-rotate(-12deg) brightness(1.03) contrast(1.04)',
-  mono:'grayscale(1) contrast(1.08)'
-};
-const canFilter = typeof ctx.filter === 'string';
+const GRADE_NAMES = ['none','warm','cool','mono'];
+
+/* Blend modes rather than ctx.filter — Safari's canvas filter support is patchy,
+   and this looks identical on every browser. */
+function applyGrade(W, H){
+  const g = state.grade;
+  if (!g || g === 'none') return;
+  ctx.save();
+  if (g === 'mono'){
+    ctx.globalCompositeOperation = 'saturation';
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0,0,W,H);
+  } else if (g === 'warm'){
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = 'rgba(255,150,40,0.62)';
+    ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = 'rgba(255,205,150,0.16)';
+    ctx.fillRect(0,0,W,H);
+  } else if (g === 'cool'){
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = 'rgba(40,120,255,0.55)';
+    ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = 'rgba(170,215,255,0.14)';
+    ctx.fillRect(0,0,W,H);
+  }
+  ctx.restore();
+  ctx.globalCompositeOperation = 'source-over';
+}
 const hexToRgba = (hex, a) => {
   const n = parseInt(hex.slice(1), 16);
   return 'rgba(' + (n>>16 & 255) + ',' + (n>>8 & 255) + ',' + (n & 255) + ',' + a + ')';
@@ -330,8 +353,14 @@ const MIME = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4',
 function saveState(){ store.set(VSET_KEY, JSON.stringify(state)); }
 function loadState(){
   try {
-    const s = JSON.parse(store.get(VSET_KEY));
-    if (s && s.pos && typeof s.pos.x === 'number') state = s;
+    const saved = JSON.parse(store.get(VSET_KEY));
+    if (saved && typeof saved === 'object'){
+      const cap = Object.assign({}, state.cap, saved.cap || {});
+      state = Object.assign({}, state, saved, { cap });        // keep keys added since it was saved
+      if (!state.pos || typeof state.pos.x !== 'number') state.pos = { x:1, y:1 };
+      if (!state.cap.pos || typeof state.cap.pos.x !== 'number') state.cap.pos = { x:0, y:1 };
+      if (!GRADE_NAMES.includes(state.grade)) state.grade = 'none';
+    }
   } catch(e){}
   $('logoSize').value = state.size;   $('logoSizeV').textContent = state.size;
   $('logoAlpha').value = state.alpha; $('logoAlphaV').textContent = state.alpha + '%';
@@ -473,10 +502,8 @@ function draw(){
     const scale = Math.max(W/vw, H/vh);
     const dw = vw*scale, dh = vh*scale;
     vslack = { x:Math.max(0, dw-W), y:Math.max(0, dh-H) };
-    ctx.save();
-    if (canFilter && state.grade !== 'none') ctx.filter = GRADES[state.grade];
     ctx.drawImage(video, (W-dw)/2 + vpan.x*vslack.x/2, (H-dh)/2 + vpan.y*vslack.y/2, dw, dh);
-    ctx.restore();
+    applyGrade(W, H);                      // colour the picture, not the text or logo
   } else {
     ctx.fillStyle = '#B4BCBA';
     ctx.font = '500 ' + Math.round(W*0.035) + 'px "Inter", system-ui, sans-serif';

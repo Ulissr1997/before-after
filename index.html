@@ -201,11 +201,19 @@
             <button data-v="stack" aria-pressed="false">Stacked</button>
           </div>
         </div>
+        <div class="field" id="fieldDivider">
+          <span class="lab">Divider</span>
+          <div class="seg" id="divider">
+            <button data-v="gap"      aria-pressed="true">Gap</button>
+            <button data-v="line"     aria-pressed="false">Line</button>
+            <button data-v="diagonal" aria-pressed="false">Diagonal</button>
+          </div>
+        </div>
         <div class="field" id="fieldGap">
-          <span class="lab">Gap between photos <b id="gapV">10</b></span>
+          <span class="lab" id="gapLab">Gap between photos <b id="gapV">10</b></span>
           <input type="range" id="gap" min="0" max="60" value="10">
         </div>
-        <div class="field">
+        <div class="field" id="fieldGuides">
           <label class="check"><input type="checkbox" id="guides"> Show what Instagram covers</label>
           <p class="hint" id="guideHint">Preview only — never part of the saved image.</p>
         </div>
@@ -235,7 +243,7 @@
         </div>
         <div class="field">
           <button class="ghost" id="recentre">Centre the photos</button>
-          <p class="hint">Drag a photo on the preview to move it. Pinch with two fingers to zoom.</p>
+          <p class="hint" id="cropHint">Drag a photo on the preview to move it. Pinch with two fingers to zoom.</p>
         </div>
       </section>
 
@@ -244,6 +252,7 @@
         <div class="field">
           <label class="check"><input type="checkbox" id="showLabels" checked> Show text on photos</label>
         </div>
+        <div id="textControls">
         <div class="field" id="fieldLabels">
           <span class="lab">Label text</span>
           <div class="duo">
@@ -301,10 +310,13 @@
             <input type="range" id="labelAlpha" min="0" max="100" value="78" aria-label="Text background opacity">
           </div>
         </div>
+        </div>
       </section>
 
       <!-- STYLE -->
       <section class="pane" id="pane-style">
+        <p class="hint" id="noLogo" style="margin:0 0 4px" hidden>Add a logo in the Photos tab to place and size it here.</p>
+        <div id="logoControls">
         <div class="field" id="fieldLogoPos">
           <span class="lab">Logo position</span>
           <div class="seg" id="logoPos">
@@ -335,6 +347,18 @@
         <div class="field">
           <span class="lab">Logo opacity <b id="logoAlphaV">100%</b></span>
           <input type="range" id="logoAlpha" min="20" max="100" value="100">
+        </div>
+        </div>
+        <div class="field" id="fieldReveal">
+          <span class="lab">Animated reveal</span>
+          <div class="seg" id="revealStyle">
+            <button data-v="wipe" aria-pressed="true">Wipe across</button>
+            <button data-v="fade" aria-pressed="false">Cross-fade</button>
+          </div>
+          <span class="lab" style="margin-top:12px">Length <b id="revealSecsV">4s</b></span>
+          <input type="range" id="revealSecs" min="2" max="8" step="0.5" value="4">
+          <button class="ghost" id="exportReveal" style="margin-top:10px">Export reveal video</button>
+          <p class="hint" id="revealHint">Plays your before turning into the after. Records in real time.</p>
         </div>
         <div class="field">
           <span class="lab">Saved looks</span>
@@ -367,7 +391,8 @@ const FONTS = {
 };
 const DEFAULTS = {
   mode:'compare',
-  format:'square', layout:'side', gap:10, bg:'#ffffff', fit:false,
+  format:'square', layout:'side', gap:10, bg:'#ffffff', fit:false, divider:'gap',
+  reveal:{ style:'wipe', seconds:4 },
   zoom:{a:1,b:1}, pan:{ a:{x:0,y:0}, b:{x:0,y:0} },
   labels:true, txtA:'Before', txtB:'After', caption:'',
   font:'sans', textSize:8,
@@ -376,7 +401,7 @@ const DEFAULTS = {
   logoSize:26, logoAlpha:100, guides:false,
   logoXY:{ compare:{x:0.5,y:1}, single:{x:1,y:1} }
 };
-const STYLE_KEYS = ['format','layout','gap','bg','fit','labels','txtA','txtB','caption',
+const STYLE_KEYS = ['format','layout','gap','bg','fit','divider','labels','txtA','txtB','caption',
                     'font','textSize','positions','labelFg','labelBg','labelAlpha','logoSize','logoAlpha','logoXY'];
 
 const cv = document.getElementById('cv');
@@ -481,7 +506,7 @@ document.querySelectorAll('.pick input').forEach(inp => {
     $('name'+sfx).textContent = file.name;
     $('slot'+sfx).classList.add('filled');
     $('slot'+sfx).querySelector('.clear').hidden = false;
-    if (key === 'logo') rememberLogo(imgs.logo, file.name);
+    if (key === 'logo'){ rememberLogo(imgs.logo, file.name); syncContext(); }
     else { meta[key] = { url, name:file.name }; state.zoom[key] = 1; state.pan[key] = {x:0,y:0}; applyState(); }
     render();
   });
@@ -495,7 +520,7 @@ function clearSlot(key){
   slot.querySelector('input').value = '';
   $('thumb'+sfx).style.backgroundImage = '';
   $('name'+sfx).textContent = empty;
-  if (key === 'logo') store.del(LOGO_KEY); else meta[key] = { url:'', name:'' };
+  if (key === 'logo'){ store.del(LOGO_KEY); syncContext(); } else meta[key] = { url:'', name:'' };
   $('status').textContent = '';
   render();
 }
@@ -523,10 +548,12 @@ $('swap').addEventListener('click', () => {
 /* ---------- drawing ---------- */
 let hitboxes = [], paneBoxes = [], logoBox = null;
 
-function drawPhoto(img, key, x, y, w, h){
+function drawPhoto(img, key, x, y, w, h, clip){
   const zoom = state.zoom[key] || 1, pan = state.pan[key] || {x:0,y:0};
   ctx.save();
-  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.beginPath();
+  if (clip) clip(); else ctx.rect(x, y, w, h);
+  ctx.clip();
 
   if (state.fit){
     const bs = Math.max(w/img.width, h/img.height) * 1.2;
@@ -668,15 +695,50 @@ function render(forExport){
     if (state.labels) drawLabel(state.caption, 'c', 0, 0, W, H);
     drawLogo(W,H);
   } else {
-    const g = state.gap;
-    const panes = state.layout === 'side'
-      ? (w => [[0,0,w,H],[w+g,0,w,H]])((W-g)/2)
-      : (h => [[0,0,W,h],[0,h+g,W,h]])((H-g)/2);
+    const side = state.layout === 'side';
+    const diagonal = state.divider === 'diagonal';
+    const g = state.divider === 'gap' ? state.gap : 0;
+    const skew = diagonal ? (side ? W : H) * 0.10 : 0;
+    let panes, clips = null;
+
+    if (diagonal && side){
+      const mid = W/2;
+      panes = [[0,0,mid+skew,H],[mid-skew,0,mid+skew,H]];
+      clips = [
+        () => { ctx.moveTo(0,0); ctx.lineTo(mid+skew,0); ctx.lineTo(mid-skew,H); ctx.lineTo(0,H); ctx.closePath(); },
+        () => { ctx.moveTo(mid+skew,0); ctx.lineTo(W,0); ctx.lineTo(W,H); ctx.lineTo(mid-skew,H); ctx.closePath(); }
+      ];
+    } else if (diagonal){
+      const mid = H/2;
+      panes = [[0,0,W,mid+skew],[0,mid-skew,W,mid+skew]];
+      clips = [
+        () => { ctx.moveTo(0,0); ctx.lineTo(W,0); ctx.lineTo(W,mid-skew); ctx.lineTo(0,mid+skew); ctx.closePath(); },
+        () => { ctx.moveTo(0,mid+skew); ctx.lineTo(W,mid-skew); ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); }
+      ];
+    } else {
+      panes = side ? (w => [[0,0,w,H],[w+g,0,w,H]])((W-g)/2)
+                   : (h => [[0,0,W,h],[0,h+g,W,h]])((H-g)/2);
+    }
+
     [['a',0],['b',1]].forEach(([key,i]) => {
       const [x,y,w,h] = panes[i];
-      if (imgs[key]) drawPhoto(imgs[key], key, x, y, w, h);
-      else { ctx.fillStyle = '#E4E8E7'; ctx.fillRect(x,y,w,h); }
+      if (imgs[key]) drawPhoto(imgs[key], key, x, y, w, h, clips && clips[i]);
+      else { ctx.fillStyle = '#E4E8E7'; ctx.save(); ctx.beginPath();
+             if (clips) clips[i](); else ctx.rect(x,y,w,h); ctx.clip(); ctx.fillRect(x,y,w,h); ctx.restore(); }
     });
+
+    if (state.divider !== 'gap' && state.gap > 0){
+      ctx.save();
+      ctx.strokeStyle = state.bg;
+      ctx.lineWidth = state.gap;
+      ctx.beginPath();
+      if (diagonal && side){ ctx.moveTo(W/2+skew, 0); ctx.lineTo(W/2-skew, H); }
+      else if (diagonal)   { ctx.moveTo(0, H/2+skew); ctx.lineTo(W, H/2-skew); }
+      else if (side)       { ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); }
+      else                 { ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); }
+      ctx.stroke();
+      ctx.restore();
+    }
     if (state.labels){
       drawLabel(state.txtA, 'a', ...panes[0]);
       drawLabel(state.txtB, 'b', ...panes[1]);
@@ -704,7 +766,14 @@ function segment(id, key, after){
     render(); commit();
   });
 }
-segment('fmt','format'); segment('layout','layout');
+segment('fmt','format'); segment('layout','layout'); segment('divider','divider', () => syncDivider());
+$('revealStyle').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  state.reveal.style = btn.dataset.v;
+  commit();
+});
 segment('fitMode', null, v => { state.fit = (v === 'fit'); });
 $('mode').addEventListener('click', e => {
   const btn = e.target.closest('button');
@@ -853,6 +922,10 @@ cv.addEventListener('pointercancel', endPointer);
 /* ---------- sliders and fields ---------- */
 const bind = (id, fn) => $(id).addEventListener('input', e => { fn(e.target.value); render(); });
 bind('gap',  v => { state.gap = +v; $('gapV').textContent = v; });
+$('revealSecs').addEventListener('input', e => {
+  state.reveal.seconds = +e.target.value;
+  $('revealSecsV').textContent = e.target.value + 's';
+});
 bind('bg',   v => state.bg = v);
 bind('zoomA',v => { state.zoom.a = +v/100; $('zoomAV').textContent = v; });
 bind('zoomB',v => { state.zoom.b = +v/100; $('zoomBV').textContent = v; });
@@ -865,7 +938,7 @@ bind('labelBg', v => state.labelBg = v);
 bind('labelAlpha', v => { state.labelAlpha = +v; $('labelAlphaV').textContent = v + '%'; });
 bind('logoSize', v => { state.logoSize = +v; $('logoSizeV').textContent = v; });
 bind('logoAlpha', v => { state.logoAlpha = +v; $('logoAlphaV').textContent = v + '%'; });
-$('showLabels').addEventListener('change', e => { state.labels = e.target.checked; render(); });
+$('showLabels').addEventListener('change', e => { state.labels = e.target.checked; syncContext(); render(); });
 $('guides').addEventListener('change', e => { state.guides = e.target.checked; render(); });
 $('font').addEventListener('click', async e => {
   const btn = e.target.closest('button');
@@ -951,10 +1024,27 @@ async function restoreLogo(){
     $('nameL').textContent = name || 'Saved logo';
     $('slotL').classList.add('filled');
     $('slotL').querySelector('.clear').hidden = false;
+    syncContext();
   } catch(e){ store.del(LOGO_KEY); }
 }
 
 /* ---------- syncing the UI to state ---------- */
+function syncDivider(){
+  $('gapLab').firstChild.nodeValue = state.divider === 'gap' ? 'Gap between photos ' : 'Line thickness ';
+}
+
+function syncContext(){
+  const hasLogo = !!imgs.logo;
+  $('logoControls').hidden = !hasLogo;
+  $('noLogo').hidden = hasLogo;
+  $('textControls').hidden = !state.labels;
+  $('fieldGuides').hidden = state.format === 'square';   // square is never cropped or covered
+  $('recentre').textContent = state.mode === 'single' ? 'Centre the photo' : 'Centre the photos';
+  $('cropHint').textContent = state.mode === 'single'
+    ? 'Drag the photo on the preview to move it. Pinch with two fingers to zoom.'
+    : 'Drag a photo on the preview to move it. Pinch with two fingers to zoom.';
+}
+
 function syncMode(){
   const single = state.mode === 'single';
   $('slotB').hidden = single;
@@ -962,6 +1052,8 @@ function syncMode(){
   $('cropB').hidden = single;
   $('fieldSplit').hidden = single;
   $('fieldGap').hidden = single;
+  $('fieldDivider').hidden = single;
+  $('fieldReveal').hidden = single;
   $('fieldBg').hidden = single;
   $('fieldTarget').hidden = single;
   $('fieldLabels').hidden = single;
@@ -971,7 +1063,7 @@ function syncMode(){
   $('slotAName').textContent = single ? 'Photo' : 'Before';
   $('cropZoomA').textContent = single ? 'Zoom' : 'Before — zoom';
   document.querySelector('.tabs button[data-pane="layout"]').textContent = single ? 'Size' : 'Layout';
-  syncPosUI(); syncLogoUI();
+  syncPosUI(); syncLogoUI(); syncDivider(); syncContext();
 }
 
 function applyState(){
@@ -991,12 +1083,15 @@ function applyState(){
   $('guideHint').textContent = state.format === 'square'
     ? 'Square posts are not cropped or covered, so there is nothing to show.'
     : 'Preview only — never part of the saved image.';
-  [['mode','mode'],['fmt','format'],['layout','layout']].forEach(([id,key]) =>
+  $('revealSecs').value = state.reveal.seconds; $('revealSecsV').textContent = state.reveal.seconds + 's';
+  [...$('revealStyle').children].forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.v === state.reveal.style)));
+  [['mode','mode'],['fmt','format'],['layout','layout'],['divider','divider']].forEach(([id,key]) =>
     [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state[key]))));
   [...$('font').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state.font)));
   [...$('fitMode').children].forEach(b =>
     b.setAttribute('aria-pressed', String((b.dataset.v === 'fit') === !!state.fit)));
-  syncPosUI(); syncLogoUI();
+  syncPosUI(); syncLogoUI(); syncContext();
 }
 
 function restoreSettings(){
@@ -1009,6 +1104,7 @@ function restoreSettings(){
       const q = state.positions && state.positions[k];
       if (!q || typeof q.x !== 'number') { state.positions = state.positions || {}; state.positions[k] = {x:0,y:1}; }
     });
+    if (!state.reveal || typeof state.reveal.seconds !== 'number') state.reveal = clone(DEFAULTS.reveal);
     ['compare','single'].forEach(k => {
       const q = state.logoXY && state.logoXY[k];
       if (!q || typeof q.x !== 'number') state.logoXY[k] = clone(DEFAULTS.logoXY[k]);
@@ -1024,6 +1120,102 @@ $('reset').addEventListener('click', () => {
   clearSlot('logo');
   applyState(); syncMode(); render(); commit();
   $('status').textContent = 'Settings reset. Saved looks were kept.';
+});
+
+/* ---------- animated reveal ---------- */
+const VMIME = ['video/mp4;codecs=avc1.42E01E', 'video/mp4',
+               'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+  .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+
+function drawRevealFrame(p){
+  const [W,H] = FORMATS[state.format];
+  hitboxes = []; paneBoxes = [];
+  ctx.fillStyle = state.bg;
+  ctx.fillRect(0,0,W,H);
+
+  drawPhoto(imgs.a, 'a', 0, 0, W, H);
+  if (state.labels) drawLabel(state.txtA, 'a', 0, 0, W, H);
+
+  ctx.save();
+  if (state.reveal.style === 'fade'){
+    ctx.globalAlpha = p;
+  } else {
+    ctx.beginPath(); ctx.rect(0, 0, W*p, H); ctx.clip();
+  }
+  drawPhoto(imgs.b, 'b', 0, 0, W, H);
+  if (state.labels) drawLabel(state.txtB, 'b', 0, 0, W, H);
+  ctx.restore();
+
+  if (state.reveal.style === 'wipe' && p > 0 && p < 1){
+    ctx.save();
+    ctx.strokeStyle = state.bg;
+    ctx.lineWidth = Math.max(3, W*0.006);
+    ctx.beginPath(); ctx.moveTo(W*p, 0); ctx.lineTo(W*p, H); ctx.stroke();
+    ctx.restore();
+  }
+  drawLogo(W,H);
+}
+
+let revealing = false;
+$('exportReveal').addEventListener('click', async () => {
+  if (revealing) return;
+  if (!(imgs.a && imgs.b)){ $('status').textContent = 'Add both photos first.'; return; }
+  if (!(window.MediaRecorder && cv.captureStream)){
+    $('status').textContent = 'This browser cannot record video.'; return;
+  }
+
+  const stream = cv.captureStream(30);
+  let rec;
+  try {
+    rec = new MediaRecorder(stream, VMIME ? { mimeType:VMIME, videoBitsPerSecond:8e6 } : undefined);
+  } catch(e){ $('status').textContent = 'This browser refused to start recording.'; return; }
+
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+
+  revealing = true;
+  $('exportReveal').textContent = 'Recording…';
+  $('save').disabled = true;
+
+  const hold = 700, move = state.reveal.seconds * 1000, total = hold + move + hold;
+  const started = performance.now();
+
+  await new Promise(done => {
+    rec.onstop = done;
+    rec.start(500);
+    (function frame(now){
+      const t = now - started;
+      const p = t < hold ? 0
+              : t > hold + move ? 1
+              : (t - hold) / move;
+      drawRevealFrame(p);
+      if (t < total) requestAnimationFrame(frame);
+      else { stream.getVideoTracks().forEach(tr => tr.stop()); rec.stop(); }
+    })(started);
+  });
+
+  revealing = false;
+  $('exportReveal').textContent = 'Export reveal video';
+  $('save').disabled = false;
+  render();
+
+  if (!chunks.length){ $('status').textContent = 'Nothing was recorded. Try again.'; return; }
+  const type = rec.mimeType || VMIME || 'video/webm';
+  const ext = type.includes('mp4') ? 'mp4' : 'webm';
+  const blob = new Blob(chunks, { type });
+  const file = new File([blob], 'reveal.' + ext, { type });
+  const mb = (blob.size/1048576).toFixed(1);
+
+  if (navigator.canShare && navigator.canShare({ files:[file] })){
+    try { await navigator.share({ files:[file] }); $('status').textContent = 'Shared — ' + mb + ' MB.'; return; }
+    catch(err){ if (err.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'reveal.' + ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  $('status').textContent = 'Saved reveal.' + ext + ' — ' + mb + ' MB.';
 });
 
 /* ---------- export ---------- */

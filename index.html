@@ -1479,7 +1479,15 @@ $('save').addEventListener('click', async () => {
 
 if ('serviceWorker' in navigator)
   addEventListener('load', () => {
-    try { navigator.serviceWorker.register('sw.js').catch(()=>{}); } catch(e){}
+    try {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloaded) return;                    // a new version just took over
+        reloaded = true;
+        location.reload();
+      });
+    } catch(e){}
   });
 
 document.querySelectorAll('.panel input, .panel textarea').forEach(el =>

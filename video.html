@@ -930,7 +930,17 @@ draw();
 restoreLogo();
 updateButton();
 if ('serviceWorker' in navigator)
-  addEventListener('load', () => { try { navigator.serviceWorker.register('sw.js').catch(()=>{}); } catch(e){} });
+  addEventListener('load', () => {
+    try {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloaded) return;                    // a new version just took over
+        reloaded = true;
+        location.reload();
+      });
+    } catch(e){}
+  });
 /* ---------- full-screen preview ---------- */
 const shell = document.querySelector('.app');
 function setFull(on){

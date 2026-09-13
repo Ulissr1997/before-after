@@ -1,4 +1,4 @@
-const CACHE = 'before-after-v25';
+const CACHE = 'before-after-v26';
 const FONT_CACHE = 'before-after-fonts';
 const ASSETS = ['./', './index.html', './video.html', './lang.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png',
   './inter-400.woff2', './inter-600.woff2', './anton-400.woff2', './playfair-700.woff2', './caveat-700.woff2'];
@@ -28,6 +28,22 @@ self.addEventListener('fetch', e => {
           }).catch(() => hit)
         )
       )
+    );
+    return;
+  }
+
+  // Pages and scripts: try the network first so a deploy shows up immediately.
+  // Fonts, icons and everything else stay cache-first — they change with the version.
+  const fresh = e.request.mode === 'navigate' ||
+                url.pathname.endsWith('.html') ||
+                url.pathname.endsWith('.js');
+
+  if (fresh){
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+        return res;
+      }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
     );
     return;
   }

@@ -1,4 +1,4 @@
-const CACHE = 'before-after-v12';
+const CACHE = 'before-after-v13';
 const FONT_CACHE = 'before-after-fonts';
 const ASSETS = ['./', './index.html', './video.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 

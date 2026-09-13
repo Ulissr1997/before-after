@@ -165,7 +165,7 @@ document.body.appendChild(video);
 
 let logo = null;
 let state = { pos:{x:1,y:1}, size:20, alpha:100 };
-let logoBox = null, recording = false, audioWired = null;
+let logoBox = null, recording = false, audioWired = null, activeStream = null, startedAt = 0;
 
 /* ---------- capability check ---------- */
 const canRecord = !!(window.MediaRecorder && cv.captureStream);
@@ -409,18 +409,43 @@ function wireAudio(stream){
 }
 
 let recorder = null;
+
+function seekTo(t){
+  return new Promise(res => {
+    if (Math.abs(video.currentTime - t) < 0.05) return res();
+    let done = false;
+    const finish = () => { if (done) return; done = true; video.removeEventListener('seeked', finish); res(); };
+    video.addEventListener('seeked', finish);
+    video.currentTime = t;
+    setTimeout(finish, 2000);
+  });
+}
+
+function releaseStream(){
+  if (!activeStream) return;
+  // Safari hands back a dead track if the previous capture is still live
+  activeStream.getVideoTracks().forEach(t => t.stop());
+  activeStream = null;
+}
+
 $('go').addEventListener('click', async () => {
   if (recording){ if (recorder) recorder.stop(); return; }
   if (!video.videoWidth) return;
 
-  const stream = cv.captureStream(30);
-  wireAudio(stream);
+  // start playback inside the gesture — iOS won't allow it after an await
+  let playPromise;
+  try { playPromise = video.play(); } catch(e){}
+
+  releaseStream();
+  activeStream = cv.captureStream(30);
+  wireAudio(activeStream);
 
   const bits = Math.min(12e6, Math.max(4e6, cv.width * cv.height * 4));
   try {
-    recorder = new MediaRecorder(stream, MIME ? { mimeType:MIME, videoBitsPerSecond:bits } : undefined);
+    recorder = new MediaRecorder(activeStream, MIME ? { mimeType:MIME, videoBitsPerSecond:bits } : undefined);
   } catch(e){
     $('status').textContent = 'This browser refused to start recording.';
+    video.pause(); releaseStream();
     return;
   }
 
@@ -430,23 +455,28 @@ $('go').addEventListener('click', async () => {
     recording = false;
     cancelAnimationFrame(rafId); rafId = null;
     video.pause();
+    releaseStream();
     $('progressWrap').hidden = true;
+    $('progressBar').style.width = '0%';
     updateButton();
-    const type = recorder.mimeType || MIME || 'video/webm';
+    const type = (recorder && recorder.mimeType) || MIME || 'video/webm';
     const ext = type.includes('mp4') ? 'mp4' : 'webm';
-    const blob = new Blob(chunks, { type });
-    await deliver(blob, 'logo-video.' + ext);
+    if (!chunks.length){ $('status').textContent = 'Nothing was recorded. Try once more.'; return; }
+    await deliver(new Blob(chunks, { type }), 'logo-video.' + ext);
   };
 
   recording = true;
   updateButton();
   $('progressWrap').hidden = false;
+  $('progressBar').style.width = '0%';
   $('status').textContent = '';
-  video.currentTime = 0;
-  try { await video.play(); }
-  catch(e){ $('status').textContent = 'The video would not start playing.'; recording = false; updateButton(); return; }
 
+  try { await playPromise; }
+  catch(e){ $('status').textContent = 'The video would not start playing.'; recording = false; releaseStream(); updateButton(); return; }
+
+  await seekTo(0);              // a finished clip sits at the end — rewind and wait for it
   if (!rafId) loop();
+  startedAt = Date.now();
   recorder.start(1000);
 });
 
@@ -457,7 +487,10 @@ video.addEventListener('timeupdate', () => {
   $('progressText').textContent = 'Recording — ' +
     Math.ceil(video.duration - video.currentTime) + 's left';
 });
-video.addEventListener('ended', () => { if (recorder && recording) recorder.stop(); });
+video.addEventListener('ended', () => {
+  // ignore the stray 'ended' that can fire while we're still rewinding
+  if (recorder && recording && Date.now() - startedAt > 700) recorder.stop();
+});
 
 async function deliver(blob, name){
   const mb = (blob.size/1048576).toFixed(1);

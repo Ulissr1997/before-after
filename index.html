@@ -108,10 +108,19 @@
   .slot small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hint{font-size:12px;color:var(--muted);margin:10px 0 0}
 
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--field)}
-  .chip button{border:0;background:transparent;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;padding:8px 6px 8px 14px}
-  .chip button.x{color:var(--muted);font-size:16px;padding:8px 12px 8px 6px}
+  .looks{display:block}
+  .look{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:3px;background:var(--field);margin:0 0 8px;overflow:hidden}
+  .look .go{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:11px;border:0;background:transparent;font:inherit;text-align:left;padding:9px 10px;cursor:pointer}
+  .look .sw{
+    flex:0 0 38px;height:38px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+    font-size:16px;line-height:1;border:1px solid rgba(0,0,0,.12);
+  }
+  .look .who{min-width:0}
+  .look .name{display:block;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .look .meta{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .look .del{flex:0 0 46px;border:0;border-left:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:19px;cursor:pointer}
+  .look.confirming{border-color:#C2705F;background:#FBEDEA}
+  .look.confirming .del{color:#9C3B28;font-size:13px;font-weight:600;flex:0 0 70px}
 
   .bar{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
   .barrow{display:flex;gap:10px}
@@ -362,9 +371,18 @@
         </div>
         <div class="field">
           <span class="lab">Saved looks</span>
-          <div class="chips" id="presets"></div>
+          <div class="looks" id="presets"></div>
           <button class="ghost" id="savePreset" style="margin-top:10px">Save this look</button>
           <p class="hint">Keeps your fonts, colours, positions and logo size. Photos aren't included.</p>
+        </div>
+        <div class="field">
+          <span class="lab">Backup</span>
+          <div class="duo">
+            <button class="ghost" id="backup">Save a backup file</button>
+            <button class="ghost" id="restoreBtn">Restore</button>
+          </div>
+          <input type="file" id="restoreFile" accept="application/json,.json" hidden>
+          <p class="hint">Writes your looks, settings and logo to a file you keep. Add this app to your Home Screen too — iPhones clear storage for sites left unopened for a week.</p>
         </div>
         <button class="linkbtn" id="reset">Reset everything and forget logo</button>
       </section>
@@ -958,35 +976,67 @@ $('recentre').addEventListener('click', () => {
 function loadPresets(){
   try { return JSON.parse(store.get(PRESETS_KEY)) || []; } catch(e){ return []; }
 }
+function presetMeta(style){
+  const names = { sans:'Inter', display:'Anton', serif:'Playfair', script:'Caveat' };
+  const shape = { square:'Square', portrait:'Portrait', story:'Story' };
+  const bits = [names[style.font] || 'Inter', shape[style.format] || '', style.labels ? 'text on' : 'no text'];
+  return bits.filter(Boolean).join(' · ');
+}
+
 function drawPresets(){
   const list = loadPresets(), box = $('presets');
   box.innerHTML = '';
   if (!list.length){
-    box.innerHTML = '<p class="hint" style="margin:0">Nothing saved yet.</p>';
+    box.innerHTML = '<p class="hint" style="margin:0 0 4px">Nothing saved yet.</p>';
     return;
   }
   list.forEach((preset, i) => {
-    const chip = document.createElement('div');
-    chip.className = 'chip';
-    const use = document.createElement('button');
-    use.textContent = preset.name;
-    use.addEventListener('click', () => {
-      STYLE_KEYS.forEach(k => { if (k in preset.style) state[k] = clone(preset.style[k]); });
+    const style = preset.style || {};
+    const face = FONTS[style.font] || FONTS.sans;
+
+    const row = document.createElement('div');
+    row.className = 'look';
+
+    const go = document.createElement('button');
+    go.className = 'go';
+    go.innerHTML = '<span class="sw"></span><span class="who"><span class="name"></span><span class="meta"></span></span>';
+    const sw = go.querySelector('.sw');
+    sw.textContent = 'Aa';
+    sw.style.background = style.labelBg || '#121517';
+    sw.style.color = style.labelFg || '#ffffff';
+    sw.style.fontFamily = face.css;
+    go.querySelector('.name').textContent = preset.name;
+    go.querySelector('.meta').textContent = presetMeta(style);
+    go.addEventListener('click', () => {
+      STYLE_KEYS.forEach(k => { if (k in style) state[k] = clone(style[k]); });
       applyState(); syncMode(); ensureFont().then(render); render(); commit();
-      $('status').textContent = 'Applied “' + preset.name + '”.';
+      $('status').textContent = 'Applied \u201c' + preset.name + '\u201d.';
     });
+
     const del = document.createElement('button');
-    del.className = 'x'; del.textContent = '×';
+    del.className = 'del';
+    del.textContent = '\u00d7';
     del.setAttribute('aria-label', 'Delete ' + preset.name);
+    let armed = null;
     del.addEventListener('click', () => {
+      if (!armed){                                   // first tap only arms it
+        armed = setTimeout(() => { armed = null; del.textContent = '\u00d7'; row.classList.remove('confirming'); }, 4000);
+        del.textContent = 'Delete?';
+        row.classList.add('confirming');
+        return;
+      }
+      clearTimeout(armed);
       const next = loadPresets().filter((_, j) => j !== i);
       store.set(PRESETS_KEY, JSON.stringify(next));
       drawPresets();
+      $('status').textContent = 'Deleted \u201c' + preset.name + '\u201d.';
     });
-    chip.append(use, del);
-    box.appendChild(chip);
+
+    row.append(go, del);
+    box.appendChild(row);
   });
 }
+
 $('savePreset').addEventListener('click', () => {
   const name = (prompt('Name this look') || '').trim();
   if (!name) return;
@@ -1000,6 +1050,50 @@ $('savePreset').addEventListener('click', () => {
   }
   drawPresets();
   $('status').textContent = 'Saved “' + name + '”.';
+});
+
+/* ---------- backup ---------- */
+$('backup').addEventListener('click', () => {
+  const data = {
+    app:'before-after', version:1, saved:new Date().toISOString(),
+    settings:clone(state), presets:loadPresets(), logo:store.get(LOGO_KEY)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'before-after-backup.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  $('status').textContent = 'Backup saved — keep it somewhere safe.';
+});
+
+$('restoreBtn').addEventListener('click', () => $('restoreFile').click());
+$('restoreFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch(err){ $('status').textContent = 'That file could not be read as a backup.'; return; }
+  if (!data || data.app !== 'before-after'){
+    $('status').textContent = 'That does not look like a backup from this app.';
+    return;
+  }
+
+  const incoming = Array.isArray(data.presets) ? data.presets : [];
+  const mine = loadPresets().filter(p => !incoming.some(q => q.name === p.name));
+  store.set(PRESETS_KEY, JSON.stringify(mine.concat(incoming)));
+
+  if (data.settings){
+    for (const k in DEFAULTS) if (k in data.settings) state[k] = clone(data.settings[k]);
+    state.zoom = { a:1, b:1 };
+    state.pan = { a:{x:0,y:0}, b:{x:0,y:0} };
+  }
+  if (data.logo){ store.set(LOGO_KEY, data.logo); await restoreLogo(); }
+
+  drawPresets(); applyState(); syncMode(); await ensureFont(); render(); commit();
+  $('status').textContent = 'Restored ' + incoming.length + ' look' + (incoming.length === 1 ? '' : 's') + '.';
 });
 
 /* ---------- logo memory ---------- */

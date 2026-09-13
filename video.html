@@ -9,6 +9,9 @@
 <style>
   @font-face{font-family:"Inter";src:url("inter-400.woff2") format("woff2");font-weight:400;font-display:swap}
   @font-face{font-family:"Inter";src:url("inter-600.woff2") format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"Anton";src:url("anton-400.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Playfair Display";src:url("playfair-700.woff2") format("woff2");font-weight:700;font-display:swap}
+  @font-face{font-family:"Caveat";src:url("caveat-700.woff2") format("woff2");font-weight:700;font-display:swap}
   :root{
     --ink:#171A1C; --stage:#0E1112; --panel:#FFFFFF; --line:#D8DDDC;
     --muted:#5C666B; --accent:#0E5F5B; --field:#F1F3F2; --tap:46px;
@@ -33,6 +36,7 @@
   .app.full .stage{padding:0}
   .app.full .expand{display:block;top:calc(14px + env(safe-area-inset-top));right:14px}
   .app.full canvas{border-radius:0;box-shadow:none}
+  .panel.locked{opacity:.45;pointer-events:none}
   .panel{flex:0 0 auto;max-height:46dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--panel);padding:14px 16px 18px}
   .field{margin:0 0 16px;min-width:0}
   .field:last-child{margin-bottom:0}
@@ -61,6 +65,15 @@
   input[type=range]{display:block;width:100%;margin:0;accent-color:var(--accent);height:26px}
   .check{display:flex;align-items:center;gap:10px;font-size:15px;min-height:var(--tap);cursor:pointer}
   .check input{accent-color:var(--accent);width:20px;height:20px;flex:0 0 20px}
+  .sec{margin:22px 0 12px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+  .seg.fonts button{font-size:15px}
+  .seg.fonts button[data-v="display"]{font-family:"Anton",Impact,sans-serif}
+  .seg.fonts button[data-v="serif"]{font-family:"Playfair Display",Georgia,serif}
+  .seg.fonts button[data-v="script"]{font-family:"Caveat",cursive;font-size:18px}
+  textarea{width:100%;font:inherit;font-size:16px;height:62px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--field);color:var(--ink);resize:none;line-height:1.3}
+  .duo{display:flex;gap:10px;align-items:center}
+  .duo > *{flex:1 1 0;min-width:0}
+  input[type=color]{flex:0 0 56px;width:56px;height:var(--tap);padding:2px;border:1px solid var(--line);border-radius:3px;background:var(--field)}
   .hint{font-size:12px;color:var(--muted);margin:10px 0 0}
   .warn{font-size:13px;color:#8A3A2E;background:#FBEDEA;border:1px solid #F0D2CB;border-radius:3px;padding:10px;margin:0 0 14px}
 
@@ -68,6 +81,9 @@
   .track i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
 
   .bar{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .barrow{display:flex;gap:10px}
+  .bar .alt{flex:0 0 104px;width:104px;font-size:14px;background:var(--field);color:var(--ink);border:1px solid var(--line)}
+  .bar .alt:disabled{color:#B4BCBA}
   .bar button{width:100%;height:52px;border:0;border-radius:3px;background:var(--accent);color:#F2F7F6;font:inherit;font-weight:600;cursor:pointer}
   .bar button:disabled{background:var(--field);color:#9AA3A1;cursor:not-allowed}
   .bar p{margin:8px 0 0;font-size:12px;color:var(--muted);text-align:center;min-height:1em}
@@ -141,6 +157,81 @@
         <input type="range" id="logoAlpha" min="20" max="100" value="100">
       </div>
 
+      <div class="field" id="fieldShape" hidden>
+        <span class="lab">Shape</span>
+        <div class="seg" id="shape">
+          <button data-v="original" aria-pressed="true">As filmed</button>
+          <button data-v="square"   aria-pressed="false">Square</button>
+          <button data-v="portrait" aria-pressed="false">4:5</button>
+          <button data-v="story"    aria-pressed="false">9:16</button>
+        </div>
+        <p class="hint" id="shapeHint">Drag the picture on the preview to choose what stays in frame.</p>
+      </div>
+
+      <div class="field" id="fieldSpeed" hidden>
+        <span class="lab">Speed</span>
+        <div class="seg" id="speed">
+          <button data-v="1" aria-pressed="true">Normal</button>
+          <button data-v="2" aria-pressed="false">2×</button>
+          <button data-v="4" aria-pressed="false">4×</button>
+        </div>
+        <p class="hint" id="speedHint">Faster playback also means a faster export.</p>
+      </div>
+
+      <div class="field" id="fieldGrade" hidden>
+        <span class="lab">Colour</span>
+        <div class="seg" id="grade">
+          <button data-v="none" aria-pressed="true">As filmed</button>
+          <button data-v="warm" aria-pressed="false">Warm</button>
+          <button data-v="cool" aria-pressed="false">Cool</button>
+          <button data-v="mono" aria-pressed="false">Mono</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" id="mute"> Drop the sound</label>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" id="logoFade"> Fade the logo in</label>
+      </div>
+
+      <h3 class="sec">Text on the video</h3>
+      <div class="field">
+        <textarea id="capText" rows="2" placeholder="Leave empty for none" aria-label="Caption"></textarea>
+      </div>
+      <div id="capControls" hidden>
+        <div class="field">
+          <span class="lab">Typeface</span>
+          <div class="seg fonts" id="capFont">
+            <button data-v="sans"    aria-pressed="true">Inter</button>
+            <button data-v="display" aria-pressed="false">Anton</button>
+            <button data-v="serif"   aria-pressed="false">Playfair</button>
+            <button data-v="script"  aria-pressed="false">Caveat</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lab">Size <b id="capSizeV">7</b></span>
+          <input type="range" id="capSize" min="3" max="16" step="0.5" value="7">
+        </div>
+        <div class="field">
+          <span class="lab">Position</span>
+          <div class="spots" id="capPos">
+            <button data-v="tl">Top left</button><button data-v="tc">Top</button><button data-v="tr">Top right</button>
+            <button data-v="ml">Left</button><button data-v="mc">Middle</button><button data-v="mr">Right</button>
+            <button data-v="bl" aria-pressed="true">Bottom left</button><button data-v="bc">Bottom</button><button data-v="br">Bottom right</button>
+          </div>
+          <p class="hint">Or drag the text on the preview.</p>
+        </div>
+        <div class="field">
+          <span class="lab">Colours</span>
+          <div class="duo">
+            <input type="color" id="capFg" value="#ffffff" aria-label="Text colour">
+            <input type="color" id="capBg" value="#121517" aria-label="Text background colour">
+            <input type="range" id="capAlpha" min="0" max="100" value="78" aria-label="Background opacity">
+          </div>
+        </div>
+      </div>
+
       <div class="field" id="fieldTrim" hidden>
         <span class="lab">Trim <b id="trimV">whole clip</b></span>
         <input type="range" id="trimStart" min="0" max="100" step="0.1" value="0" aria-label="Start">
@@ -162,7 +253,10 @@
     </div>
 
     <div class="bar">
-      <button id="go" disabled>Add a video first</button>
+      <div class="barrow">
+        <button class="alt" id="preview" disabled>Preview</button>
+        <button id="go" disabled>Add a video first</button>
+      </div>
       <p id="status"></p>
     </div>
   </div>
@@ -181,6 +275,24 @@ const store = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 
+const FONTS = {
+  sans:    { css:'"Inter", system-ui, sans-serif',     weight:600 },
+  display: { css:'"Anton", Impact, sans-serif',        weight:400 },
+  serif:   { css:'"Playfair Display", Georgia, serif', weight:700 },
+  script:  { css:'"Caveat", cursive',                  weight:700 }
+};
+const GRADES = {
+  none:'none',
+  warm:'saturate(1.15) sepia(0.16) contrast(1.04)',
+  cool:'saturate(1.06) hue-rotate(-12deg) brightness(1.03) contrast(1.04)',
+  mono:'grayscale(1) contrast(1.08)'
+};
+const canFilter = typeof ctx.filter === 'string';
+const hexToRgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n>>16 & 255) + ',' + (n>>8 & 255) + ',' + (n & 255) + ',' + a + ')';
+};
+
 const video = document.createElement('video');
 video.playsInline = true;
 video.setAttribute('playsinline','');
@@ -191,9 +303,12 @@ video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;op
 document.body.appendChild(video);
 
 let logo = null;
-let state = { pos:{x:1,y:1}, size:20, alpha:100, guides:false };
+let state = { pos:{x:1,y:1}, size:20, alpha:100, guides:false, shape:'original', speed:1, mute:false,
+              grade:'none', logoFade:false,
+              cap:{ text:'', font:'sans', size:7, pos:{x:0,y:1}, fg:'#ffffff', bg:'#121517', alpha:78 } };
+let vpan = { x:0, y:0 }, vslack = { x:0, y:0 };
 let trim = { start:0, end:0 };
-let logoBox = null, recording = false, audioWired = null, activeStream = null, startedAt = 0;
+let logoBox = null, previewing = false, recording = false, audioWired = null, activeStream = null, startedAt = 0;
 
 /* ---------- capability check ---------- */
 const canRecord = !!(window.MediaRecorder && cv.captureStream);
@@ -213,6 +328,17 @@ function loadState(){
   $('logoSize').value = state.size;   $('logoSizeV').textContent = state.size;
   $('logoAlpha').value = state.alpha; $('logoAlphaV').textContent = state.alpha + '%';
   $('guides').checked = !!state.guides;
+  $('mute').checked = !!state.mute;
+  $('logoFade').checked = !!state.logoFade;
+  $('capText').value = state.cap.text;
+  $('capSize').value = state.cap.size; $('capSizeV').textContent = state.cap.size;
+  $('capFg').value = state.cap.fg; $('capBg').value = state.cap.bg; $('capAlpha').value = state.cap.alpha;
+  [...$('capFont').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state.cap.font)));
+  [['grade','grade']].forEach(([id,key]) =>
+    [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state[key]))));
+  syncCap();
+  [['shape','shape'],['speed','speed']].forEach(([id,key]) =>
+    [...$(id).children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v == state[key]))));
   syncSpots();
 }
 
@@ -310,13 +436,23 @@ async function restoreLogo(){
 }
 
 /* ---------- canvas ---------- */
+const SHAPES = { square:1, portrait:0.8, story:0.5625 };      // width ÷ height
+
 function sizeCanvas(){
   const w = video.videoWidth, h = video.videoHeight;
   if (!w) return;
-  // Instagram tops out around 1080 on the short edge; don't upscale, don't ship 4K
-  const k = Math.min(1, 1080/Math.min(w,h), 1920/Math.max(w,h));
-  cv.width = Math.round(w*k/2)*2;      // even numbers keep H.264 encoders happy
-  cv.height = Math.round(h*k/2)*2;
+  let cw, ch;
+  if (state.shape === 'original'){
+    // Instagram tops out around 1080 on the short edge; don't upscale, don't ship 4K
+    const k = Math.min(1, 1080/Math.min(w,h), 1920/Math.max(w,h));
+    cw = w*k; ch = h*k;
+  } else {
+    const ratio = SHAPES[state.shape];
+    cw = 1080; ch = 1080/ratio;
+    if (ch > 1920){ ch = 1920; cw = 1920*ratio; }
+  }
+  cv.width = Math.round(cw/2)*2;       // even numbers keep H.264 encoders happy
+  cv.height = Math.round(ch/2)*2;
 }
 
 function draw(){
@@ -325,7 +461,14 @@ function draw(){
   ctx.fillRect(0,0,W,H);
 
   if (video.videoWidth && video.readyState >= 2){
-    ctx.drawImage(video, 0, 0, W, H);
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const scale = Math.max(W/vw, H/vh);
+    const dw = vw*scale, dh = vh*scale;
+    vslack = { x:Math.max(0, dw-W), y:Math.max(0, dh-H) };
+    ctx.save();
+    if (canFilter && state.grade !== 'none') ctx.filter = GRADES[state.grade];
+    ctx.drawImage(video, (W-dw)/2 + vpan.x*vslack.x/2, (H-dh)/2 + vpan.y*vslack.y/2, dw, dh);
+    ctx.restore();
   } else {
     ctx.fillStyle = '#B4BCBA';
     ctx.font = '500 ' + Math.round(W*0.035) + 'px "Inter", system-ui, sans-serif';
@@ -351,6 +494,9 @@ function draw(){
     band(H-bottom, bottom, 'Caption and buttons sit here');
   }
 
+  capBox = null;
+  if (state.cap.text.trim()) drawCaption(W, H);
+
   logoBox = null;
   if (logo){
     const w = W * state.size/100, h = logo.height * (w / logo.width);
@@ -358,11 +504,60 @@ function draw(){
     const spanX = Math.max(0, W - 2*m - w), spanY = Math.max(0, H - 2*m - h);
     const x = m + spanX*state.pos.x, y = m + spanY*state.pos.y;
     ctx.save();
-    ctx.globalAlpha = state.alpha/100;
+    ctx.globalAlpha = (state.alpha/100) * logoFadeFactor();
     ctx.drawImage(logo, x, y, w, h);
     ctx.restore();
     logoBox = { x, y, w, h, m };
   }
+}
+
+let capBox = null;
+
+function logoFadeFactor(){
+  if (!state.logoFade) return 1;
+  if (!(previewing || recording)) return 1;               // sitting still: show it
+  const t = video.currentTime - trim.start;
+  return Math.max(0, Math.min(1, (t - 0.4) / 0.8));       // in over ~0.8s
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x,y,w,h,r);
+  else {
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+}
+
+function drawCaption(W, H){
+  const cap = state.cap;
+  const lines = cap.text.replace(/\s+$/,'').split('\n');
+  if (!lines.join('').trim()) return;
+  const face = FONTS[cap.font] || FONTS.sans;
+  const size = Math.round(Math.min(W,H) * cap.size/100);
+  ctx.font = face.weight + ' ' + size + 'px ' + face.css;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+
+  const lineH = size*1.22, padX = size*0.55, padY = size*0.34;
+  const widths = lines.map(l => ctx.measureText(l).width);
+  const boxW = Math.max(...widths) + padX*2;
+  const boxH = size + (lines.length-1)*lineH + padY*2;
+  const m = Math.round(Math.min(W,H) * 0.055);
+  const spanX = Math.max(0, W - 2*m - boxW), spanY = Math.max(0, H - 2*m - boxH);
+  const x = m + spanX*cap.pos.x, y = m + spanY*cap.pos.y;
+  capBox = { x, y, w:boxW, h:boxH, m };
+
+  const a = cap.alpha/100;
+  ctx.save();
+  if (a > 0){ ctx.fillStyle = hexToRgba(cap.bg, a); roundRect(x,y,boxW,boxH,size*0.18); ctx.fill(); }
+  if (a < 0.35){ ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = size*0.35; ctx.shadowOffsetY = size*0.05; }
+  ctx.fillStyle = cap.fg;
+  lines.forEach((line,i) => {
+    const w = widths[i];
+    const lx = cap.pos.x < 0.34 ? x + padX : cap.pos.x > 0.66 ? x + boxW - padX - w : x + (boxW - w)/2;
+    ctx.fillText(line, lx, y + padY + size/2 + i*lineH);
+  });
+  ctx.restore();
 }
 
 let rafId = null;
@@ -382,6 +577,9 @@ function setupTrim(){
   ['trimStart','trimEnd'].forEach(id => { $(id).max = d; $(id).step = Math.min(0.1, d/500); });
   $('trimStart').value = 0; $('trimEnd').value = d;
   $('fieldTrim').hidden = false;
+  $('fieldShape').hidden = false;
+  $('fieldSpeed').hidden = false;
+  $('fieldGrade').hidden = false;
   showTrim();
 }
 function showTrim(){
@@ -425,10 +623,25 @@ function canvasPoint(e){
   return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) };
 }
 cv.addEventListener('pointerdown', e => {
-  if (!logoBox || recording) return;
+  if (recording || previewing) return;             // nothing moves while it plays
   const p = canvasPoint(e), pad = cv.width*0.02;
-  if (p.x < logoBox.x-pad || p.x > logoBox.x+logoBox.w+pad ||
-      p.y < logoBox.y-pad || p.y > logoBox.y+logoBox.h+pad) return;
+  const hit = b => b && p.x >= b.x-pad && p.x <= b.x+b.w+pad && p.y >= b.y-pad && p.y <= b.y+b.h+pad;
+  if (hit(capBox)){
+    drag = { caption:true, dx:p.x-capBox.x, dy:p.y-capBox.y, box:capBox };
+    cv.setPointerCapture(e.pointerId);
+    cv.classList.add('dragging');
+    e.preventDefault();
+    return;
+  }
+  const onLogo = hit(logoBox);
+  if (!onLogo){
+    if (!video.videoWidth || (!vslack.x && !vslack.y)) return;
+    drag = { picture:true, last:p };
+    cv.setPointerCapture(e.pointerId);
+    cv.classList.add('dragging');
+    e.preventDefault();
+    return;
+  }
   drag = { dx:p.x-logoBox.x, dy:p.y-logoBox.y, box:logoBox };
   cv.setPointerCapture(e.pointerId);
   cv.classList.add('dragging');
@@ -436,10 +649,19 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   if (!drag) return;
-  const p = canvasPoint(e), b = drag.box;
+  const p = canvasPoint(e);
+  if (drag.picture){
+    if (vslack.x) vpan.x = Math.max(-1, Math.min(1, vpan.x + 2*(p.x - drag.last.x)/vslack.x));
+    if (vslack.y) vpan.y = Math.max(-1, Math.min(1, vpan.y + 2*(p.y - drag.last.y)/vslack.y));
+    drag.last = p;
+    draw();
+    return;
+  }
+  const b = drag.box;
   const spanX = Math.max(0, cv.width - 2*b.m - b.w), spanY = Math.max(0, cv.height - 2*b.m - b.h);
-  state.pos.x = spanX ? clamp((p.x - drag.dx - b.m)/spanX) : 0.5;
-  state.pos.y = spanY ? clamp((p.y - drag.dy - b.m)/spanY) : 0.5;
+  const target = drag.caption ? state.cap.pos : state.pos;
+  target.x = spanX ? clamp((p.x - drag.dx - b.m)/spanX) : 0.5;
+  target.y = spanY ? clamp((p.y - drag.dy - b.m)/spanY) : 0.5;
   draw();
 });
 function endDrag(){
@@ -455,16 +677,102 @@ $('logoSize').addEventListener('input', e => {
   state.size = +e.target.value; $('logoSizeV').textContent = e.target.value;
   saveState(); draw();
 });
+function segment(id, apply){
+  $(id).addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn || recording) return;
+    [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    apply(btn.dataset.v);
+    saveState(); draw();
+  });
+}
+segment('shape', v => { state.shape = v; vpan = {x:0,y:0}; sizeCanvas(); });
+segment('grade', v => { state.grade = v; });
+segment('capFont', async v => { state.cap.font = v; await ensureCapFont(); });
+$('logoFade').addEventListener('change', e => { state.logoFade = e.target.checked; saveState(); draw(); });
+
+async function ensureCapFont(){
+  const face = FONTS[state.cap.font] || FONTS.sans;
+  if (!document.fonts) return;
+  try {
+    await Promise.race([document.fonts.load(face.weight + ' 100px ' + face.css),
+                        new Promise(r => setTimeout(r, 2500))]);
+  } catch(e){}
+  draw();
+}
+
+function syncCap(){
+  $('capControls').hidden = !state.cap.text.trim();
+}
+
+$('capText').addEventListener('input', e => {
+  state.cap.text = e.target.value; syncCap(); saveState(); draw();
+});
+['capSize','capFg','capBg','capAlpha'].forEach(id => {
+  $(id).addEventListener('input', e => {
+    const v = e.target.value;
+    if (id === 'capSize'){ state.cap.size = +v; $('capSizeV').textContent = v; }
+    else if (id === 'capFg') state.cap.fg = v;
+    else if (id === 'capBg') state.cap.bg = v;
+    else state.cap.alpha = +v;
+    saveState(); draw();
+  });
+});
+$('capPos').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const P = { t:0, m:0.5, b:1, l:0, c:0.5, r:1 }, v = btn.dataset.v;
+  state.cap.pos = { x:P[v[1]], y:P[v[0]] };
+  [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed',
+    String(b.dataset.v && P[b.dataset.v[1]] === state.cap.pos.x && P[b.dataset.v[0]] === state.cap.pos.y)));
+  saveState(); draw();
+});
+segment('speed', v => { state.speed = +v; video.playbackRate = state.speed; });
+$('mute').addEventListener('change', e => { state.mute = e.target.checked; saveState(); });
 $('guides').addEventListener('change', e => { state.guides = e.target.checked; saveState(); draw(); });
 $('logoAlpha').addEventListener('input', e => {
   state.alpha = +e.target.value; $('logoAlphaV').textContent = e.target.value + '%';
   saveState(); draw();
 });
 
+/* ---------- preview ---------- */
+$('preview').addEventListener('click', async () => {
+  if (previewing){ video.pause(); return; }        // 'pause' tidies up below
+  if (!video.videoWidth) return;
+  previewing = true;
+  setFull(true);
+  updateButton();
+  $('status').textContent = '';
+  video.playbackRate = state.speed;
+  video.muted = true;                              // preview is silent; the export is not
+  await seekTo(trim.start);
+  try { await video.play(); } catch(e){ previewing = false; updateButton(); return; }
+  if (!rafId) loop();
+});
+
+video.addEventListener('pause', () => {
+  if (!previewing) return;
+  previewing = false;
+  setFull(false);
+  video.muted = false;
+  if (!recording && rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  draw();
+  updateButton();
+});
+
+video.addEventListener('timeupdate', () => {
+  if (previewing && video.currentTime >= trim.end - 0.05) video.pause();
+});
+
 /* ---------- recording ---------- */
 function updateButton(){
+  const busy = recording || previewing;
+  document.querySelector('.panel').classList.toggle('locked', busy);
+  cv.style.cursor = busy ? 'default' : 'grab';
   const ready = !!video.videoWidth && canRecord;
   $('go').disabled = !ready || recording;
+  $('preview').disabled = !video.videoWidth || recording;
+  $('preview').textContent = previewing ? 'Stop' : 'Preview';
   $('go').textContent = recording ? 'Stop and keep this much'
     : !video.videoWidth ? 'Add a video first'
     : !logo ? 'Export without a logo' : 'Add logo and export';
@@ -511,14 +819,16 @@ function releaseStream(){
 $('go').addEventListener('click', async () => {
   if (recording){ if (recorder) recorder.stop(); return; }
   if (!video.videoWidth) return;
+  if (previewing){ previewing = false; video.pause(); video.muted = false; }
 
   // start playback inside the gesture — iOS won't allow it after an await
   let playPromise;
   try { playPromise = video.play(); } catch(e){}
 
   releaseStream();
+  video.playbackRate = state.speed;
   activeStream = cv.captureStream(30);
-  wireAudio(activeStream);
+  if (!state.mute) wireAudio(activeStream);
 
   const bits = Math.min(12e6, Math.max(4e6, cv.width * cv.height * 4));
   try {
@@ -565,7 +875,7 @@ video.addEventListener('timeupdate', () => {
   const len = Math.max(0.1, trim.end - trim.start);
   const done = Math.min(len, Math.max(0, video.currentTime - trim.start));
   $('progressBar').style.width = (done/len*100) + '%';
-  $('progressText').textContent = 'Recording — ' + Math.ceil(len - done) + 's left';
+  $('progressText').textContent = 'Recording — ' + Math.ceil((len - done)/state.speed) + 's left';
   if (video.currentTime >= trim.end - 0.05 && recorder && Date.now() - startedAt > 700) recorder.stop();
 });
 video.addEventListener('ended', () => {
@@ -598,6 +908,7 @@ document.getElementById('mode').addEventListener('click', e => {
 video.addEventListener('loadeddata', draw);
 video.addEventListener('seeked', draw);
 loadState();
+ensureCapFont();
 draw();
 restoreLogo();
 updateButton();
@@ -611,6 +922,10 @@ function setFull(on){
   btn.textContent = on ? '\u2715' : '\u2921';
   btn.setAttribute('aria-label', on ? 'Close full screen' : 'Expand preview');
 }
-document.getElementById('expand').addEventListener('click', () => setFull(!shell.classList.contains('full')));
+document.getElementById('expand').addEventListener('click', () => {
+  const leaving = shell.classList.contains('full');
+  if (leaving && previewing){ video.pause(); return; }   // stopping the preview closes it too
+  setFull(!leaving);
+});
 addEventListener('keydown', e => { if (e.key === 'Escape') setFull(false); });
 </script>

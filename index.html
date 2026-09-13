@@ -55,6 +55,7 @@
   }
   .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 
+  .panel.locked{opacity:.45;pointer-events:none}
   .panel{flex:0 0 auto;max-height:44dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--panel);padding:14px 16px 18px}
   .pane{display:none}
   .pane.on{display:block}
@@ -71,6 +72,8 @@
   }
   .seg button:last-child{border-right:0}
   .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .seg.grid3{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:0}
+  .seg.grid3 button{border-bottom:1px solid var(--line)}
   .seg.fonts button{font-size:15px}
   .seg.fonts button[data-v="display"]{font-family:"Anton",Impact,sans-serif;letter-spacing:.02em}
   .seg.fonts button[data-v="serif"]{font-family:"Playfair Display",Georgia,serif}
@@ -122,9 +125,21 @@
   .look.confirming{border-color:#C2705F;background:#FBEDEA}
   .look.confirming .del{color:#9C3B28;font-size:13px;font-weight:600;flex:0 0 70px}
 
+  .sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+  .sheet-backdrop{position:absolute;inset:0;background:rgba(8,10,11,.55)}
+  .sheet-card{
+    position:relative;width:100%;max-width:520px;background:var(--panel);
+    border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    max-height:86dvh;overflow-y:auto;
+  }
+  .sheet-card h2{margin:0 0 14px;font-size:17px;font-weight:600}
+  .sheet-main{width:100%;height:52px;border:0;border-radius:3px;background:var(--accent);color:#F2F7F6;font:inherit;font-weight:600;cursor:pointer}
+  @media (min-width:900px){ .sheet{align-items:center} .sheet-card{border-radius:14px} }
   .bar{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
   .barrow{display:flex;gap:10px}
-  .bar .step{flex:0 0 58px;width:58px;font-size:21px;background:var(--field);color:var(--ink);border:1px solid var(--line)}
+  .bar .alt{flex:0 0 98px;width:98px;font-size:13px;background:var(--field);color:var(--ink);border:1px solid var(--line)}
+  .bar .alt:disabled{color:#B4BCBA}
+  .bar .step{flex:0 0 50px;width:50px;font-size:20px;background:var(--field);color:var(--ink);border:1px solid var(--line)}
   .bar .step:disabled{color:#B4BCBA;background:var(--field)}
   .bar button{width:100%;height:52px;border:0;border-radius:3px;background:var(--accent);color:#F2F7F6;font:inherit;font-weight:600;cursor:pointer}
   .bar button:disabled{background:var(--field);color:#9AA3A1;cursor:not-allowed}
@@ -146,10 +161,10 @@
   <div class="side">
     <div class="tabs" role="tablist">
       <button role="tab" aria-selected="true"  data-pane="photos">Photos</button>
-      <button role="tab" aria-selected="false" data-pane="layout">Layout</button>
-      <button role="tab" aria-selected="false" data-pane="crop">Crop</button>
+      <button role="tab" aria-selected="false" data-pane="frame">Frame</button>
       <button role="tab" aria-selected="false" data-pane="text">Text</button>
-      <button role="tab" aria-selected="false" data-pane="style">Style</button>
+      <button role="tab" aria-selected="false" data-pane="logo">Logo</button>
+      <button role="tab" aria-selected="false" data-pane="looks">Looks</button>
     </div>
 
     <div class="panel">
@@ -194,7 +209,7 @@
       </section>
 
       <!-- LAYOUT -->
-      <section class="pane" id="pane-layout">
+      <section class="pane" id="pane-frame">
         <div class="field">
           <span class="lab">Canvas</span>
           <div class="seg" id="fmt">
@@ -230,10 +245,7 @@
           <span class="lab">Background colour</span>
           <div class="duo"><input type="color" id="bg" value="#ffffff" aria-label="Background colour"></div>
         </div>
-      </section>
-
-      <!-- CROP -->
-      <section class="pane" id="pane-crop">
+      
         <div class="field">
           <span class="lab">Photo shape</span>
           <div class="seg" id="fitMode">
@@ -255,6 +267,9 @@
           <p class="hint" id="cropHint">Drag a photo on the preview to move it. Pinch with two fingers to zoom.</p>
         </div>
       </section>
+
+      <!-- CROP -->
+      
 
       <!-- TEXT -->
       <section class="pane" id="pane-text">
@@ -323,7 +338,7 @@
       </section>
 
       <!-- STYLE -->
-      <section class="pane" id="pane-style">
+      <section class="pane" id="pane-logo">
         <p class="hint" id="noLogo" style="margin:0 0 4px" hidden>Add a logo in the Photos tab to place and size it here.</p>
         <div id="logoControls">
         <div class="field" id="fieldLogoPos">
@@ -358,18 +373,9 @@
           <input type="range" id="logoAlpha" min="20" max="100" value="100">
         </div>
         </div>
-        <div class="field" id="fieldReveal">
-          <span class="lab">Animated reveal</span>
-          <div class="seg" id="revealStyle">
-            <button data-v="wipe" aria-pressed="true">Wipe across</button>
-            <button data-v="fade" aria-pressed="false">Cross-fade</button>
-          </div>
-          <span class="lab" style="margin-top:12px">Length <b id="revealSecsV">4s</b></span>
-          <input type="range" id="revealSecs" min="2" max="8" step="0.5" value="4">
-          <button class="ghost" id="exportReveal" style="margin-top:10px">Export reveal video</button>
-          <p class="hint" id="revealHint">Plays your before turning into the after. Records in real time.</p>
-        </div>
-        <div class="field">
+        </section>
+
+      <section class="pane" id="pane-looks"><div class="field">
           <span class="lab">Saved looks</span>
           <div class="looks" id="presets"></div>
           <button class="ghost" id="savePreset" style="margin-top:10px">Save this look</button>
@@ -392,10 +398,38 @@
       <div class="barrow">
         <button class="step" id="undo" disabled aria-label="Undo" title="Undo">↶</button>
         <button class="step" id="redo" disabled aria-label="Redo" title="Redo">↷</button>
-        <button id="save" disabled>Add two photos first</button>
+        <button class="alt" id="exportAs" disabled>Export as…</button>
+        <button id="save" disabled>Save image</button>
       </div>
       <p id="status"></p>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-backdrop" id="sheetBack"></div>
+  <div class="sheet-card">
+    <h2>Reveal video</h2>
+<div class="field" id="fieldReveal">
+          <span class="lab">Animated reveal</span>
+          <div class="seg grid3" id="revealStyle">
+            <button data-v="wipe"     aria-pressed="true">Wipe</button>
+            <button data-v="diagonal" aria-pressed="false">Diagonal</button>
+            <button data-v="push"     aria-pressed="false">Push</button>
+            <button data-v="fade"     aria-pressed="false">Fade</button>
+            <button data-v="bounce"   aria-pressed="false">Back &amp; forth</button>
+          </div>
+          <label class="check" id="handleRow"><input type="checkbox" id="revealHandle"> Show a slider grip on the edge</label>
+          <label class="check"><input type="checkbox" id="revealZoomIn"> Slow zoom while it plays</label>
+          <span class="lab" style="margin-top:12px">Length <b id="revealSecsV">4s</b></span>
+          <input type="range" id="revealSecs" min="2" max="8" step="0.5" value="4">
+          <div class="duo" style="margin-top:10px">
+            <button class="ghost" id="previewReveal">Preview</button>
+            <button class="ghost" id="exportReveal">Export video</button>
+          </div>
+          <p class="hint" id="revealHint">Plays your before turning into the after. Records in real time.</p>
+        </div>
+            <button class="ghost" id="sheetClose" style="margin-top:14px">Cancel</button>
   </div>
 </div>
 
@@ -410,7 +444,7 @@ const FONTS = {
 const DEFAULTS = {
   mode:'compare',
   format:'square', layout:'side', gap:10, bg:'#ffffff', fit:false, divider:'gap',
-  reveal:{ style:'wipe', seconds:4 },
+  reveal:{ style:'wipe', seconds:4, handle:false, zoom:false },
   zoom:{a:1,b:1}, pan:{ a:{x:0,y:0}, b:{x:0,y:0} },
   labels:true, txtA:'Before', txtB:'After', caption:'',
   font:'sans', textSize:8,
@@ -566,8 +600,10 @@ $('swap').addEventListener('click', () => {
 /* ---------- drawing ---------- */
 let hitboxes = [], paneBoxes = [], logoBox = null;
 
+let revealZoom = 1;                    // pushed above 1 only while a reveal plays
+
 function drawPhoto(img, key, x, y, w, h, clip){
-  const zoom = state.zoom[key] || 1, pan = state.pan[key] || {x:0,y:0};
+  const zoom = (state.zoom[key] || 1) * revealZoom, pan = state.pan[key] || {x:0,y:0};
   ctx.save();
   ctx.beginPath();
   if (clip) clip(); else ctx.rect(x, y, w, h);
@@ -768,7 +804,8 @@ function render(forExport){
 
   const ready = single ? !!imgs.a : !!(imgs.a && imgs.b);
   $('save').disabled = !ready;
-  $('save').textContent = ready ? 'Save image' : single ? 'Add a photo first' : 'Add two photos first';
+  $('save').textContent = ready ? 'Save image' : single ? 'Add a photo' : 'Add photos';
+  $('exportAs').disabled = !(imgs.a && imgs.b) || single;
   persist();
 }
 
@@ -790,6 +827,7 @@ $('revealStyle').addEventListener('click', e => {
   if (!btn) return;
   [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
   state.reveal.style = btn.dataset.v;
+  $('handleRow').hidden = (btn.dataset.v === 'fade' || btn.dataset.v === 'push');
   commit();
 });
 segment('fitMode', null, v => { state.fit = (v === 'fit'); });
@@ -859,6 +897,7 @@ const inside = (p, b, pad) => p.x >= b.x - pad && p.x <= b.x + b.w + pad &&
                               p.y >= b.y - pad && p.y <= b.y + b.h + pad;
 
 cv.addEventListener('pointerdown', e => {
+  if (revealing) return;                           // nothing moves while the reveal plays
   cv.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, canvasPoint(e));
   const p = canvasPoint(e);
@@ -940,6 +979,8 @@ cv.addEventListener('pointercancel', endPointer);
 /* ---------- sliders and fields ---------- */
 const bind = (id, fn) => $(id).addEventListener('input', e => { fn(e.target.value); render(); });
 bind('gap',  v => { state.gap = +v; $('gapV').textContent = v; });
+$('revealHandle').addEventListener('change', e => { state.reveal.handle = e.target.checked; commit(); });
+$('revealZoomIn').addEventListener('change', e => { state.reveal.zoom = e.target.checked; commit(); });
 $('revealSecs').addEventListener('input', e => {
   state.reveal.seconds = +e.target.value;
   $('revealSecsV').textContent = e.target.value + 's';
@@ -1156,7 +1197,6 @@ function syncMode(){
   $('fieldLogoSpot').hidden = !single;
   $('slotAName').textContent = single ? 'Photo' : 'Before';
   $('cropZoomA').textContent = single ? 'Zoom' : 'Before — zoom';
-  document.querySelector('.tabs button[data-pane="layout"]').textContent = single ? 'Size' : 'Layout';
   syncPosUI(); syncLogoUI(); syncDivider(); syncContext();
 }
 
@@ -1178,6 +1218,9 @@ function applyState(){
     ? 'Square posts are not cropped or covered, so there is nothing to show.'
     : 'Preview only — never part of the saved image.';
   $('revealSecs').value = state.reveal.seconds; $('revealSecsV').textContent = state.reveal.seconds + 's';
+  $('revealHandle').checked = !!state.reveal.handle;
+  $('revealZoomIn').checked = !!state.reveal.zoom;
+  $('handleRow').hidden = (state.reveal.style === 'fade' || state.reveal.style === 'push');
   [...$('revealStyle').children].forEach(b =>
     b.setAttribute('aria-pressed', String(b.dataset.v === state.reveal.style)));
   [['mode','mode'],['fmt','format'],['layout','layout'],['divider','divider']].forEach(([id,key]) =>
@@ -1221,83 +1264,167 @@ const VMIME = ['video/mp4;codecs=avc1.42E01E', 'video/mp4',
                'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
   .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 
+function drawGrip(x, y, W){
+  const r = W * 0.045;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = r*0.6; ctx.shadowOffsetY = r*0.08;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#171A1C';
+  ctx.lineWidth = Math.max(2, r*0.12);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  [[-1, -r*0.28],[1, r*0.28]].forEach(([dir, off]) => {
+    ctx.beginPath();
+    ctx.moveTo(x + off - dir*r*0.12, y - r*0.22);
+    ctx.lineTo(x + off + dir*r*0.12, y);
+    ctx.lineTo(x + off - dir*r*0.12, y + r*0.22);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
 function drawRevealFrame(p){
   const [W,H] = FORMATS[state.format];
+  const style = state.reveal.style;
   hitboxes = []; paneBoxes = [];
+  revealZoom = state.reveal.zoom ? 1 + 0.07 * p : 1;
+
   ctx.fillStyle = state.bg;
   ctx.fillRect(0,0,W,H);
+
+  if (style === 'push'){
+    drawPhoto(imgs.a, 'a', -W*p, 0, W, H);
+    if (state.labels) drawLabel(state.txtA, 'a', -W*p, 0, W, H);
+    drawPhoto(imgs.b, 'b', W - W*p, 0, W, H);
+    if (state.labels) drawLabel(state.txtB, 'b', W - W*p, 0, W, H);
+    drawLogo(W,H);
+    revealZoom = 1;
+    return;
+  }
 
   drawPhoto(imgs.a, 'a', 0, 0, W, H);
   if (state.labels) drawLabel(state.txtA, 'a', 0, 0, W, H);
 
+  const skew = W * 0.10;
+  const edge = (style === 'diagonal')
+    ? -skew + p * (W + 2*skew)      // the slanted edge has further to travel
+    : W * p;
+
   ctx.save();
-  if (state.reveal.style === 'fade'){
+  if (style === 'fade'){
     ctx.globalAlpha = p;
+  } else if (style === 'diagonal'){
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(edge + skew, 0); ctx.lineTo(edge - skew, H); ctx.lineTo(0, H);
+    ctx.closePath(); ctx.clip();
   } else {
-    ctx.beginPath(); ctx.rect(0, 0, W*p, H); ctx.clip();
+    ctx.beginPath(); ctx.rect(0, 0, edge, H); ctx.clip();
   }
   drawPhoto(imgs.b, 'b', 0, 0, W, H);
   if (state.labels) drawLabel(state.txtB, 'b', 0, 0, W, H);
   ctx.restore();
 
-  if (state.reveal.style === 'wipe' && p > 0 && p < 1){
+  if (style !== 'fade' && p > 0 && p < 1){
     ctx.save();
     ctx.strokeStyle = state.bg;
     ctx.lineWidth = Math.max(3, W*0.006);
-    ctx.beginPath(); ctx.moveTo(W*p, 0); ctx.lineTo(W*p, H); ctx.stroke();
+    ctx.beginPath();
+    if (style === 'diagonal'){ ctx.moveTo(edge + skew, 0); ctx.lineTo(edge - skew, H); }
+    else { ctx.moveTo(edge, 0); ctx.lineTo(edge, H); }
+    ctx.stroke();
     ctx.restore();
+    if (state.reveal.handle) drawGrip(edge, H/2, W);
   }
   drawLogo(W,H);
+  revealZoom = 1;
 }
 
-let revealing = false;
-$('exportReveal').addEventListener('click', async () => {
-  if (revealing) return;
-  if (!(imgs.a && imgs.b)){ $('status').textContent = 'Add both photos first.'; return; }
-  if (!(window.MediaRecorder && cv.captureStream)){
-    $('status').textContent = 'This browser cannot record video.'; return;
+let revealing = false, stopPreview = false, recordingReveal = false;
+
+function revealTimeline(){
+  const bounce = state.reveal.style === 'bounce';
+  const hold = 700, move = state.reveal.seconds * 1000;
+  const total = bounce ? hold + move + 400 + move : hold + move + hold;
+  return { total, at(t){
+    if (t < hold) return 0;
+    if (!bounce) return t > hold + move ? 1 : (t - hold) / move;
+    if (t < hold + move) return (t - hold) / move;                       // out
+    if (t < hold + move + 400) return 1;                                 // pause on the after
+    return Math.max(0, 1 - (t - hold - move - 400) / move);              // and back
+  }};
+}
+
+async function runReveal(record){
+  if (revealing) return null;
+  if (!(imgs.a && imgs.b)){ $('status').textContent = 'Add both photos first.'; return null; }
+
+  let rec = null, stream = null;
+  const chunks = [];
+  if (record){
+    if (!(window.MediaRecorder && cv.captureStream)){
+      $('status').textContent = 'This browser cannot record video.'; return null;
+    }
+    stream = cv.captureStream(30);
+    try {
+      rec = new MediaRecorder(stream, VMIME ? { mimeType:VMIME, videoBitsPerSecond:8e6 } : undefined);
+    } catch(e){ $('status').textContent = 'This browser refused to start recording.'; return null; }
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   }
 
-  const stream = cv.captureStream(30);
-  let rec;
-  try {
-    rec = new MediaRecorder(stream, VMIME ? { mimeType:VMIME, videoBitsPerSecond:8e6 } : undefined);
-  } catch(e){ $('status').textContent = 'This browser refused to start recording.'; return; }
+  const sheetWasOpen = !$('sheet').hidden;
+  closeSheet();
+  setFull(true);                                   // watch it full size
 
-  const chunks = [];
-  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  revealing = true; stopPreview = false; recordingReveal = record;
+  document.querySelector('.panel').classList.add('locked');
+  cv.style.cursor = 'default';
+  $('save').disabled = true; $('exportAs').disabled = true;
+  $('previewReveal').textContent = record ? 'Preview' : 'Stop';
+  $('exportReveal').textContent = record ? 'Recording…' : 'Export video';
+  $('status').textContent = record ? 'Recording the reveal…' : 'Playing the preview…';
 
-  revealing = true;
-  $('exportReveal').textContent = 'Recording…';
-  $('save').disabled = true;
-
-  const hold = 700, move = state.reveal.seconds * 1000, total = hold + move + hold;
+  const { total, at } = revealTimeline();
   const started = performance.now();
 
   await new Promise(done => {
-    rec.onstop = done;
-    rec.start(500);
+    if (rec){ rec.onstop = done; rec.start(500); }
     (function frame(now){
       const t = now - started;
-      const p = t < hold ? 0
-              : t > hold + move ? 1
-              : (t - hold) / move;
-      drawRevealFrame(p);
-      if (t < total) requestAnimationFrame(frame);
-      else { stream.getVideoTracks().forEach(tr => tr.stop()); rec.stop(); }
+      drawRevealFrame(at(t));
+      if (t < total && !stopPreview) requestAnimationFrame(frame);
+      else if (rec){ stream.getVideoTracks().forEach(tr => tr.stop()); rec.stop(); }
+      else done();
     })(started);
   });
 
-  revealing = false;
-  $('exportReveal').textContent = 'Export reveal video';
-  $('save').disabled = false;
+  revealing = false; recordingReveal = false;
+  document.querySelector('.panel').classList.remove('locked');
+  cv.style.cursor = 'grab';
+  setFull(false);
+  if (sheetWasOpen) openSheet();                   // back to where you were
+  $('previewReveal').textContent = 'Preview';
+  $('exportReveal').textContent = 'Export video';
+  $('save').disabled = false; $('exportAs').disabled = false;
   render();
+  if (!record){ $('status').textContent = ''; return null; }
+  return { chunks, type:(rec && rec.mimeType) || VMIME || 'video/webm' };
+}
 
-  if (!chunks.length){ $('status').textContent = 'Nothing was recorded. Try again.'; return; }
-  const type = rec.mimeType || VMIME || 'video/webm';
-  const ext = type.includes('mp4') ? 'mp4' : 'webm';
-  const blob = new Blob(chunks, { type });
-  const file = new File([blob], 'reveal.' + ext, { type });
+$('previewReveal').addEventListener('click', () => {
+  if (revealing){ stopPreview = true; return; }
+  runReveal(false);
+});
+
+$('exportReveal').addEventListener('click', async () => {
+  if (revealing) return;
+  const out = await runReveal(true);
+  if (!out) return;
+  if (!out.chunks.length){ $('status').textContent = 'Nothing was recorded. Try again.'; return; }
+
+  const ext = out.type.includes('mp4') ? 'mp4' : 'webm';
+  const blob = new Blob(out.chunks, { type:out.type });
+  const file = new File([blob], 'reveal.' + ext, { type:out.type });
   const mb = (blob.size/1048576).toFixed(1);
 
   if (navigator.canShare && navigator.canShare({ files:[file] })){
@@ -1313,6 +1440,13 @@ $('exportReveal').addEventListener('click', async () => {
 });
 
 /* ---------- export ---------- */
+function openSheet(){ $('sheet').hidden = false; }
+function closeSheet(){ $('sheet').hidden = true; }
+$('exportAs').addEventListener('click', openSheet);
+$('sheetBack').addEventListener('click', closeSheet);
+$('sheetClose').addEventListener('click', closeSheet);
+addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
 $('save').addEventListener('click', async () => {
   render(true);                                  // guides are never exported
   const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
@@ -1361,6 +1495,10 @@ function setFull(on){
   btn.textContent = on ? '\u2715' : '\u2921';
   btn.setAttribute('aria-label', on ? 'Close full screen' : 'Expand preview');
 }
-document.getElementById('expand').addEventListener('click', () => setFull(!shell.classList.contains('full')));
+document.getElementById('expand').addEventListener('click', () => {
+  const leaving = shell.classList.contains('full');
+  if (leaving && revealing && !recordingReveal){ stopPreview = true; return; }  // ends the run, which restores everything
+  setFull(!leaving);
+});
 addEventListener('keydown', e => { if (e.key === 'Escape') setFull(false); });
 </script>

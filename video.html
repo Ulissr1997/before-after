@@ -118,7 +118,7 @@
       <div class="slot" id="slotV">
         <label class="pick">
           <span class="thumb" id="thumbV"></span>
-          <span class="txt"><b>Video</b><small id="nameV">Tap to choose a clip</small></span>
+          <span class="txt"><b>Video</b><small id="nameV" data-dyn>Tap to choose a clip</small></span>
           <input type="file" accept="video/*" data-key="video">
         </label>
         <button class="clear" data-key="video" hidden aria-label="Remove video">&times;</button>
@@ -126,7 +126,7 @@
       <div class="slot" id="slotL">
         <label class="pick">
           <span class="thumb" id="thumbL"></span>
-          <span class="txt"><b>Logo</b><small id="nameL">PNG with transparency</small></span>
+          <span class="txt"><b>Logo</b><small id="nameL" data-dyn>PNG with transparency</small></span>
           <input type="file" accept="image/*" data-key="logo">
         </label>
         <button class="clear" data-key="logo" hidden aria-label="Remove logo">&times;</button>
@@ -192,6 +192,13 @@
         <label class="check"><input type="checkbox" id="mute"> Drop the sound</label>
       </div>
       <div class="field">
+        <span class="lab">Language</span>
+        <div class="seg" id="lang">
+          <button data-v="en" aria-pressed="true">English</button>
+          <button data-v="sq" aria-pressed="false">Shqip</button>
+        </div>
+      </div>
+      <div class="field">
         <label class="check"><input type="checkbox" id="logoFade"> Fade the logo in</label>
       </div>
 
@@ -233,7 +240,7 @@
       </div>
 
       <div class="field" id="fieldTrim" hidden>
-        <span class="lab">Trim <b id="trimV">whole clip</b></span>
+        <span class="lab">Trim <b id="trimV" data-dyn>whole clip</b></span>
         <input type="range" id="trimStart" min="0" max="100" step="0.1" value="0" aria-label="Start">
         <input type="range" id="trimEnd" min="0" max="100" step="0.1" value="100" aria-label="End" style="margin-top:8px">
         <p class="hint">Recording runs in real time, so a shorter cut exports faster.</p>
@@ -246,7 +253,7 @@
 
       <div class="field" id="progressWrap" hidden>
         <div class="track"><i id="progressBar"></i></div>
-        <span class="lab" id="progressText">Recording…</span>
+        <span class="lab" id="progressText" data-dyn>Recording…</span>
       </div>
 
       <p class="hint" id="about">The clip plays through once while it records, so a 30-second video takes 30 seconds. Keep this screen open while it runs.</p>
@@ -254,14 +261,15 @@
 
     <div class="bar">
       <div class="barrow">
-        <button class="alt" id="preview" disabled>Preview</button>
-        <button id="go" disabled>Add a video first</button>
+        <button class="alt" id="preview" data-dyn disabled>Preview</button>
+        <button id="go" data-dyn disabled>Add a video first</button>
       </div>
-      <p id="status"></p>
+      <p id="status" data-dyn></p>
     </div>
   </div>
 </div>
 
+<script src="lang.js"></script>
 <script>
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
@@ -362,7 +370,7 @@ document.querySelectorAll('.pick input').forEach(inp => {
       fillSlot('L', url, file.name);
       rememberLogo(logo, file.name);
     } else {
-      $('status').textContent = 'Reading the video…';
+      $('status').textContent = I18N.t('Reading the video…');
       video.src = URL.createObjectURL(file);
       video.load();
       const ok = await new Promise(res => {
@@ -375,9 +383,9 @@ document.querySelectorAll('.pick input').forEach(inp => {
         setTimeout(() => finish(!!video.videoWidth), 15000);
       });
       if (!ok || !video.videoWidth){
-        $('status').textContent = video.error && video.error.code === 4
+        $('status').textContent = I18N.t(video.error && video.error.code === 4
           ? 'This browser can\u2019t decode that format. Try an MP4.'
-          : 'The video could not be read here. On some pages the browser blocks local video — try it on the published site.';
+          : 'The video could not be read here. On some pages the browser blocks local video — try it on the published site.');
         return;
       }
       $('status').textContent = '';
@@ -410,7 +418,7 @@ document.querySelectorAll('.clear').forEach(btn => {
     slot.querySelector('.clear').hidden = true;
     slot.querySelector('input').value = '';
     $('thumb'+sfx).style.cssText = '';
-    $('name'+sfx).textContent = key === 'logo' ? 'PNG with transparency' : 'Tap to choose a clip';
+    $('name'+sfx).textContent = I18N.t(key === 'logo' ? 'PNG with transparency' : 'Tap to choose a clip');
     updateButton();
     draw();
   });
@@ -585,7 +593,7 @@ function setupTrim(){
 function showTrim(){
   const len = trim.end - trim.start;
   $('trimV').textContent = (trim.start === 0 && Math.abs(trim.end - video.duration) < 0.05)
-    ? 'whole clip · ' + secs(video.duration)
+    ? I18N.t('whole clip') + ' · ' + secs(video.duration)
     : secs(trim.start) + ' → ' + secs(trim.end) + ' · ' + secs(len);
 }
 $('trimStart').addEventListener('input', e => {
@@ -772,10 +780,10 @@ function updateButton(){
   const ready = !!video.videoWidth && canRecord;
   $('go').disabled = !ready || recording;
   $('preview').disabled = !video.videoWidth || recording;
-  $('preview').textContent = previewing ? 'Stop' : 'Preview';
-  $('go').textContent = recording ? 'Stop and keep this much'
+  $('preview').textContent = I18N.t(previewing ? 'Stop' : 'Preview');
+  $('go').textContent = I18N.t(recording ? 'Stop and keep this much'
     : !video.videoWidth ? 'Add a video first'
-    : !logo ? 'Export without a logo' : 'Add logo and export';
+    : !logo ? 'Export without a logo' : 'Add logo and export');
 }
 
 function wireAudio(stream){
@@ -792,7 +800,7 @@ function wireAudio(stream){
     if (audioWired.ac.state === 'suspended') audioWired.ac.resume();
     audioWired.dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
   } catch(e){
-    $('status').textContent = 'Audio could not be captured — exporting the picture only.';
+    $('status').textContent = I18N.t('Audio could not be captured — exporting the picture only.');
   }
 }
 
@@ -834,7 +842,7 @@ $('go').addEventListener('click', async () => {
   try {
     recorder = new MediaRecorder(activeStream, MIME ? { mimeType:MIME, videoBitsPerSecond:bits } : undefined);
   } catch(e){
-    $('status').textContent = 'This browser refused to start recording.';
+    $('status').textContent = I18N.t('This browser refused to start recording.');
     video.pause(); releaseStream();
     return;
   }
@@ -851,7 +859,7 @@ $('go').addEventListener('click', async () => {
     updateButton();
     const type = (recorder && recorder.mimeType) || MIME || 'video/webm';
     const ext = type.includes('mp4') ? 'mp4' : 'webm';
-    if (!chunks.length){ $('status').textContent = 'Nothing was recorded. Try once more.'; return; }
+    if (!chunks.length){ $('status').textContent = I18N.t('Nothing was recorded. Try again.'); return; }
     await deliver(new Blob(chunks, { type }), 'logo-video.' + ext);
   };
 
@@ -862,7 +870,7 @@ $('go').addEventListener('click', async () => {
   $('status').textContent = '';
 
   try { await playPromise; }
-  catch(e){ $('status').textContent = 'The video would not start playing.'; recording = false; releaseStream(); updateButton(); return; }
+  catch(e){ $('status').textContent = I18N.t('The video would not start playing.'); recording = false; releaseStream(); updateButton(); return; }
 
   await seekTo(trim.start);     // a finished clip sits at the end — rewind and wait for it
   if (!rafId) loop();
@@ -875,7 +883,7 @@ video.addEventListener('timeupdate', () => {
   const len = Math.max(0.1, trim.end - trim.start);
   const done = Math.min(len, Math.max(0, video.currentTime - trim.start));
   $('progressBar').style.width = (done/len*100) + '%';
-  $('progressText').textContent = 'Recording — ' + Math.ceil((len - done)/state.speed) + 's left';
+  $('progressText').textContent = I18N.t('Recording…') + ' ' + Math.ceil((len - done)/state.speed) + 's';
   if (video.currentTime >= trim.end - 0.05 && recorder && Date.now() - startedAt > 700) recorder.stop();
 });
 video.addEventListener('ended', () => {
@@ -904,10 +912,19 @@ document.getElementById('mode').addEventListener('click', e => {
   location.href = 'index.html#' + btn.dataset.v;    // the photo app picks this up
 });
 
+$('lang').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  I18N.set(btn.dataset.v, () => { updateButton(); if (video.duration) showTrim(); draw(); });
+});
+
 /* ---------- boot ---------- */
 video.addEventListener('loadeddata', draw);
 video.addEventListener('seeked', draw);
 loadState();
+[...$('lang').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === I18N.current)));
+I18N.apply();
 ensureCapFont();
 draw();
 restoreLogo();

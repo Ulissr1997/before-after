@@ -1,6 +1,6 @@
-const CACHE = 'before-after-v24';
+const CACHE = 'before-after-v25';
 const FONT_CACHE = 'before-after-fonts';
-const ASSETS = ['./', './index.html', './video.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png',
+const ASSETS = ['./', './index.html', './video.html', './lang.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png',
   './inter-400.woff2', './inter-600.woff2', './anton-400.woff2', './playfair-700.woff2', './caveat-700.woff2'];
 
 self.addEventListener('install', e => {

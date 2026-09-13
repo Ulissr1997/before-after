@@ -181,7 +181,7 @@
         <div class="slot" id="slotA">
           <label class="pick">
             <span class="thumb" id="thumbA"></span>
-            <span class="txt"><b id="slotAName">Before</b><small id="nameA">Tap to choose a photo</small></span>
+            <span class="txt"><b id="slotAName" data-dyn>Before</b><small id="nameA" data-dyn>Tap to choose a photo</small></span>
             <input type="file" accept="image/*" data-key="a">
           </label>
           <button class="clear" data-key="a" hidden aria-label="Remove photo">&times;</button>
@@ -189,7 +189,7 @@
         <div class="slot" id="slotB">
           <label class="pick">
             <span class="thumb" id="thumbB"></span>
-            <span class="txt"><b>After</b><small id="nameB">Tap to choose a photo</small></span>
+            <span class="txt"><b>After</b><small id="nameB" data-dyn>Tap to choose a photo</small></span>
             <input type="file" accept="image/*" data-key="b">
           </label>
           <button class="clear" data-key="b" hidden aria-label="Remove photo">&times;</button>
@@ -197,7 +197,7 @@
         <div class="slot" id="slotL">
           <label class="pick">
             <span class="thumb" id="thumbL"></span>
-            <span class="txt"><b>Logo</b><small id="nameL">Optional — PNG with transparency</small></span>
+            <span class="txt"><b>Logo</b><small id="nameL" data-dyn>Optional — PNG with transparency</small></span>
             <input type="file" accept="image/*" data-key="logo">
           </label>
           <button class="clear" data-key="logo" hidden aria-label="Remove logo">&times;</button>
@@ -234,12 +234,12 @@
           </div>
         </div>
         <div class="field" id="fieldGap">
-          <span class="lab" id="gapLab">Gap between photos <b id="gapV">10</b></span>
+          <span class="lab" id="gapLab" data-dyn>Gap between photos <b id="gapV">10</b></span>
           <input type="range" id="gap" min="0" max="60" value="10">
         </div>
         <div class="field" id="fieldGuides">
           <label class="check"><input type="checkbox" id="guides"> Show what Instagram covers</label>
-          <p class="hint" id="guideHint">Preview only — never part of the saved image.</p>
+          <p class="hint" id="guideHint" data-dyn>Preview only — never part of the saved image.</p>
         </div>
         <div class="field" id="fieldBg">
           <span class="lab">Background colour</span>
@@ -255,7 +255,7 @@
           <p class="hint">Fit keeps the whole photo and blurs a copy behind it to fill the gaps.</p>
         </div>
         <div class="field">
-          <span class="lab"><span id="cropZoomA">Before — zoom</span> <b id="zoomAV">100</b></span>
+          <span class="lab"><span id="cropZoomA" data-dyn>Before — zoom</span> <b id="zoomAV">100</b></span>
           <input type="range" id="zoomA" min="100" max="300" value="100">
         </div>
         <div class="field" id="cropB">
@@ -263,8 +263,8 @@
           <input type="range" id="zoomB" min="100" max="300" value="100">
         </div>
         <div class="field">
-          <button class="ghost" id="recentre">Centre the photos</button>
-          <p class="hint" id="cropHint">Drag a photo on the preview to move it. Pinch with two fingers to zoom.</p>
+          <button class="ghost" id="recentre" data-dyn>Centre the photos</button>
+          <p class="hint" id="cropHint" data-dyn>Drag a photo on the preview to move it. Pinch with two fingers to zoom.</p>
         </div>
       </section>
 
@@ -339,7 +339,7 @@
 
       <!-- STYLE -->
       <section class="pane" id="pane-logo">
-        <p class="hint" id="noLogo" style="margin:0 0 4px" hidden>Add a logo in the Photos tab to place and size it here.</p>
+        <p class="hint" id="noLogo" data-dyn style="margin:0 0 4px" hidden>Add a logo in the Photos tab to place and size it here.</p>
         <div id="logoControls">
         <div class="field" id="fieldLogoPos">
           <span class="lab">Logo position</span>
@@ -375,9 +375,17 @@
         </div>
         </section>
 
-      <section class="pane" id="pane-looks"><div class="field">
+      <section class="pane" id="pane-looks">
+        <div class="field">
+          <span class="lab">Language</span>
+          <div class="seg" id="lang">
+            <button data-v="en" aria-pressed="true">English</button>
+            <button data-v="sq" aria-pressed="false">Shqip</button>
+          </div>
+        </div>
+<div class="field">
           <span class="lab">Saved looks</span>
-          <div class="looks" id="presets"></div>
+          <div class="looks" id="presets" data-dyn></div>
           <button class="ghost" id="savePreset" style="margin-top:10px">Save this look</button>
           <p class="hint">Keeps your fonts, colours, positions and logo size. Photos aren't included.</p>
         </div>
@@ -399,9 +407,9 @@
         <button class="step" id="undo" disabled aria-label="Undo" title="Undo">↶</button>
         <button class="step" id="redo" disabled aria-label="Redo" title="Redo">↷</button>
         <button class="alt" id="exportAs" disabled>Export as…</button>
-        <button id="save" disabled>Save image</button>
+        <button id="save" data-dyn disabled>Save image</button>
       </div>
-      <p id="status"></p>
+      <p id="status" data-dyn></p>
     </div>
   </div>
 </div>
@@ -424,8 +432,8 @@
           <span class="lab" style="margin-top:12px">Length <b id="revealSecsV">4s</b></span>
           <input type="range" id="revealSecs" min="2" max="8" step="0.5" value="4">
           <div class="duo" style="margin-top:10px">
-            <button class="ghost" id="previewReveal">Preview</button>
-            <button class="ghost" id="exportReveal">Export video</button>
+            <button class="ghost" id="previewReveal" data-dyn>Preview</button>
+            <button class="ghost" id="exportReveal" data-dyn>Export video</button>
           </div>
           <p class="hint" id="revealHint">Plays your before turning into the after. Records in real time.</p>
         </div>
@@ -433,6 +441,7 @@
   </div>
 </div>
 
+<script src="lang.js"></script>
 <script>
 const FORMATS = { square:[1080,1080], portrait:[1080,1350], story:[1080,1920] };
 const FONTS = {
@@ -551,7 +560,7 @@ document.querySelectorAll('.pick input').forEach(inp => {
     if (!file) return;
     const key = e.target.dataset.key, sfx = SLOT[key].sfx;
     try { imgs[key] = await loadFile(file); }
-    catch(err){ $('status').textContent = 'That file could not be read. Try a JPG or PNG.'; return; }
+    catch(err){ $('status').textContent = I18N.t('That file could not be read. Try a JPG or PNG.'); return; }
     const url = URL.createObjectURL(file);
     $('status').textContent = '';
     $('thumb'+sfx).style.backgroundImage = 'url(' + url + ')';
@@ -571,7 +580,7 @@ function clearSlot(key){
   slot.querySelector('.clear').hidden = true;
   slot.querySelector('input').value = '';
   $('thumb'+sfx).style.backgroundImage = '';
-  $('name'+sfx).textContent = empty;
+  $('name'+sfx).textContent = I18N.t(empty);
   if (key === 'logo'){ store.del(LOGO_KEY); syncContext(); } else meta[key] = { url:'', name:'' };
   $('status').textContent = '';
   render();
@@ -588,7 +597,7 @@ $('swap').addEventListener('click', () => {
   ['a','b'].forEach(key => {
     const sfx = SLOT[key].sfx, slot = $('slot'+sfx), has = !!imgs[key];
     $('thumb'+sfx).style.backgroundImage = has ? 'url(' + meta[key].url + ')' : '';
-    $('name'+sfx).textContent = has ? meta[key].name : SLOT[key].empty;
+    $('name'+sfx).textContent = has ? meta[key].name : I18N.t(SLOT[key].empty);
     slot.classList.toggle('filled', has);
     slot.querySelector('.clear').hidden = !has;
     slot.querySelector('input').value = '';
@@ -804,7 +813,7 @@ function render(forExport){
 
   const ready = single ? !!imgs.a : !!(imgs.a && imgs.b);
   $('save').disabled = !ready;
-  $('save').textContent = ready ? 'Save image' : single ? 'Add a photo' : 'Add photos';
+  $('save').textContent = I18N.t(ready ? 'Save image' : single ? 'Add a photo' : 'Add photos');
   $('exportAs').disabled = !(imgs.a && imgs.b) || single;
   persist();
 }
@@ -1028,7 +1037,7 @@ function drawPresets(){
   const list = loadPresets(), box = $('presets');
   box.innerHTML = '';
   if (!list.length){
-    box.innerHTML = '<p class="hint" style="margin:0 0 4px">Nothing saved yet.</p>';
+    box.innerHTML = '<p class="hint" style="margin:0 0 4px">' + I18N.t('Nothing saved yet.') + '</p>';
     return;
   }
   list.forEach((preset, i) => {
@@ -1062,7 +1071,7 @@ function drawPresets(){
     del.addEventListener('click', () => {
       if (!armed){                                   // first tap only arms it
         armed = setTimeout(() => { armed = null; del.textContent = '\u00d7'; row.classList.remove('confirming'); }, 4000);
-        del.textContent = 'Delete?';
+        del.textContent = I18N.t('Delete?');
         row.classList.add('confirming');
         return;
       }
@@ -1086,7 +1095,7 @@ $('savePreset').addEventListener('click', () => {
   const list = loadPresets().filter(p => p.name !== name);
   list.push({ name, style });
   if (!store.set(PRESETS_KEY, JSON.stringify(list))){
-    $('status').textContent = 'Could not save the look — storage is full.';
+    $('status').textContent = I18N.t('Could not save the look — storage is full.');
     return;
   }
   drawPresets();
@@ -1106,7 +1115,7 @@ $('backup').addEventListener('click', () => {
   a.download = 'before-after-backup.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-  $('status').textContent = 'Backup saved — keep it somewhere safe.';
+  $('status').textContent = I18N.t('Backup saved — keep it somewhere safe.');
 });
 
 $('restoreBtn').addEventListener('click', () => $('restoreFile').click());
@@ -1116,9 +1125,9 @@ $('restoreFile').addEventListener('change', async e => {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); }
-  catch(err){ $('status').textContent = 'That file could not be read as a backup.'; return; }
+  catch(err){ $('status').textContent = I18N.t('That file could not be read as a backup.'); return; }
   if (!data || data.app !== 'before-after'){
-    $('status').textContent = 'That does not look like a backup from this app.';
+    $('status').textContent = I18N.t('That does not look like a backup from this app.');
     return;
   }
 
@@ -1144,7 +1153,7 @@ function rememberLogo(img, name){
   c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   if (!store.set(LOGO_KEY, JSON.stringify({ name, data:c.toDataURL('image/png') })))
-    $('status').textContent = 'Logo is too large to remember — it still works for this session.';
+    $('status').textContent = I18N.t('Logo is too large to remember — it still works for this session.');
 }
 async function restoreLogo(){
   const raw = store.get(LOGO_KEY);
@@ -1165,7 +1174,7 @@ async function restoreLogo(){
 
 /* ---------- syncing the UI to state ---------- */
 function syncDivider(){
-  $('gapLab').firstChild.nodeValue = state.divider === 'gap' ? 'Gap between photos ' : 'Line thickness ';
+  $('gapLab').firstChild.nodeValue = I18N.t(state.divider === 'gap' ? 'Gap between photos' : 'Line thickness') + ' ';
 }
 
 function syncContext(){
@@ -1174,10 +1183,10 @@ function syncContext(){
   $('noLogo').hidden = hasLogo;
   $('textControls').hidden = !state.labels;
   $('fieldGuides').hidden = state.format === 'square';   // square is never cropped or covered
-  $('recentre').textContent = state.mode === 'single' ? 'Centre the photo' : 'Centre the photos';
-  $('cropHint').textContent = state.mode === 'single'
+  $('recentre').textContent = I18N.t(state.mode === 'single' ? 'Centre the photo' : 'Centre the photos');
+  $('cropHint').textContent = I18N.t(state.mode === 'single'
     ? 'Drag the photo on the preview to move it. Pinch with two fingers to zoom.'
-    : 'Drag a photo on the preview to move it. Pinch with two fingers to zoom.';
+    : 'Drag a photo on the preview to move it. Pinch with two fingers to zoom.');
 }
 
 function syncMode(){
@@ -1195,8 +1204,8 @@ function syncMode(){
   $('fieldCaption').hidden = !single;
   $('fieldLogoPos').hidden = single;
   $('fieldLogoSpot').hidden = !single;
-  $('slotAName').textContent = single ? 'Photo' : 'Before';
-  $('cropZoomA').textContent = single ? 'Zoom' : 'Before — zoom';
+  $('slotAName').textContent = I18N.t(single ? 'One photo' : 'Before');
+  $('cropZoomA').textContent = I18N.t(single ? 'Zoom' : 'Before — zoom');
   syncPosUI(); syncLogoUI(); syncDivider(); syncContext();
 }
 
@@ -1214,9 +1223,9 @@ function applyState(){
   $('logoSize').value = state.logoSize; $('logoSizeV').textContent = state.logoSize;
   $('logoAlpha').value = state.logoAlpha; $('logoAlphaV').textContent = state.logoAlpha + '%';
   $('guides').checked = !!state.guides;
-  $('guideHint').textContent = state.format === 'square'
+  $('guideHint').textContent = I18N.t(state.format === 'square'
     ? 'Square posts are not cropped or covered, so there is nothing to show.'
-    : 'Preview only — never part of the saved image.';
+    : 'Preview only — never part of the saved image.');
   $('revealSecs').value = state.reveal.seconds; $('revealSecsV').textContent = state.reveal.seconds + 's';
   $('revealHandle').checked = !!state.reveal.handle;
   $('revealZoomIn').checked = !!state.reveal.zoom;
@@ -1256,7 +1265,7 @@ $('reset').addEventListener('click', () => {
   Object.assign(state, clone(DEFAULTS));
   clearSlot('logo');
   applyState(); syncMode(); render(); commit();
-  $('status').textContent = 'Settings reset. Saved looks were kept.';
+  $('status').textContent = I18N.t('Settings reset. Saved looks were kept.');
 });
 
 /* ---------- animated reveal ---------- */
@@ -1357,18 +1366,18 @@ function revealTimeline(){
 
 async function runReveal(record){
   if (revealing) return null;
-  if (!(imgs.a && imgs.b)){ $('status').textContent = 'Add both photos first.'; return null; }
+  if (!(imgs.a && imgs.b)){ $('status').textContent = I18N.t('Add both photos first.'); return null; }
 
   let rec = null, stream = null;
   const chunks = [];
   if (record){
     if (!(window.MediaRecorder && cv.captureStream)){
-      $('status').textContent = 'This browser cannot record video.'; return null;
+      $('status').textContent = I18N.t('This browser cannot record video.'); return null;
     }
     stream = cv.captureStream(30);
     try {
       rec = new MediaRecorder(stream, VMIME ? { mimeType:VMIME, videoBitsPerSecond:8e6 } : undefined);
-    } catch(e){ $('status').textContent = 'This browser refused to start recording.'; return null; }
+    } catch(e){ $('status').textContent = I18N.t('This browser refused to start recording.'); return null; }
     rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   }
 
@@ -1380,9 +1389,9 @@ async function runReveal(record){
   document.querySelector('.panel').classList.add('locked');
   cv.style.cursor = 'default';
   $('save').disabled = true; $('exportAs').disabled = true;
-  $('previewReveal').textContent = record ? 'Preview' : 'Stop';
-  $('exportReveal').textContent = record ? 'Recording…' : 'Export video';
-  $('status').textContent = record ? 'Recording the reveal…' : 'Playing the preview…';
+  $('previewReveal').textContent = I18N.t(record ? 'Preview' : 'Stop');
+  $('exportReveal').textContent = I18N.t(record ? 'Recording…' : 'Export video');
+  $('status').textContent = I18N.t(record ? 'Recording the reveal…' : 'Playing the preview…');
 
   const { total, at } = revealTimeline();
   const started = performance.now();
@@ -1403,8 +1412,8 @@ async function runReveal(record){
   cv.style.cursor = 'grab';
   setFull(false);
   if (sheetWasOpen) openSheet();                   // back to where you were
-  $('previewReveal').textContent = 'Preview';
-  $('exportReveal').textContent = 'Export video';
+  $('previewReveal').textContent = I18N.t('Preview');
+  $('exportReveal').textContent = I18N.t('Export video');
   $('save').disabled = false; $('exportAs').disabled = false;
   render();
   if (!record){ $('status').textContent = ''; return null; }
@@ -1420,7 +1429,7 @@ $('exportReveal').addEventListener('click', async () => {
   if (revealing) return;
   const out = await runReveal(true);
   if (!out) return;
-  if (!out.chunks.length){ $('status').textContent = 'Nothing was recorded. Try again.'; return; }
+  if (!out.chunks.length){ $('status').textContent = I18N.t('Nothing was recorded. Try again.'); return; }
 
   const ext = out.type.includes('mp4') ? 'mp4' : 'webm';
   const blob = new Blob(out.chunks, { type:out.type });
@@ -1451,7 +1460,7 @@ $('save').addEventListener('click', async () => {
   render(true);                                  // guides are never exported
   const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
   render();
-  if (!blob){ $('status').textContent = 'The export failed. Try a smaller photo.'; return; }
+  if (!blob){ $('status').textContent = I18N.t('The export failed. Try a smaller photo.'); return; }
   const name = 'before-after-' + state.format + '.jpg';
   const file = new File([blob], name, {type:'image/jpeg'});
   const size = cv.width + ' × ' + cv.height + ' px';
@@ -1476,12 +1485,21 @@ if ('serviceWorker' in navigator)
 document.querySelectorAll('.panel input, .panel textarea').forEach(el =>
   el.addEventListener('change', commit));
 
+$('lang').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  [...e.currentTarget.children].forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+  I18N.set(btn.dataset.v, () => { applyState(); syncMode(); drawPresets(); render(); });
+});
+
 restoreSettings();
 const wanted = location.hash.replace('#','');
 if (wanted === 'compare' || wanted === 'single') state.mode = wanted;
 applyState();
 syncMode();
 drawPresets();
+[...$('lang').children].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === I18N.current)));
+I18N.apply();
 render();
 committed = clone(state);
 restoreLogo().then(render);

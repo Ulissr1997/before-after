@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>Logo on video</title>
+<meta name="theme-color" content="#171A1C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root{
+    --ink:#171A1C; --stage:#0E1112; --panel:#FFFFFF; --line:#D8DDDC;
+    --muted:#5C666B; --accent:#0E5F5B; --field:#F1F3F2; --tap:46px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none !important}
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+  body{font:16px/1.45 "Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--stage);-webkit-font-smoothing:antialiased}
+
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top)}
+  .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px;background:var(--stage)}
+  canvas{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;cursor:grab;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  canvas.dragging{cursor:grabbing}
+
+  .panel{flex:0 0 auto;max-height:46dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--panel);padding:14px 16px 18px}
+  .field{margin:0 0 16px;min-width:0}
+  .field:last-child{margin-bottom:0}
+  .lab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--muted);margin:0 0 7px}
+  .lab b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  .slot{display:flex;align-items:stretch;min-width:0;border:1px solid var(--line);border-radius:3px;background:var(--field);margin:0 0 10px}
+  .slot.filled{border-color:var(--accent);background:var(--panel)}
+  .pick{position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer}
+  .pick input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+  .clear{flex:0 0 46px;border:0;border-left:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:24px;line-height:1;cursor:pointer}
+  .thumb{flex:0 0 44px;width:44px;height:44px;border-radius:2px;border:1px solid var(--line);background:#E4E8E7 center/cover no-repeat}
+  .txt{min-width:0;flex:1 1 auto}
+  .slot b{display:block;font-size:14px;font-weight:600}
+  .slot small{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .seg{display:flex;width:100%;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--field)}
+  .seg button{flex:1 1 0;min-width:0;border:0;border-right:1px solid var(--line);background:transparent;font:inherit;font-size:13px;color:var(--muted);height:var(--tap);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+  .seg button:last-child{border-right:0}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .spots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border:1px solid var(--line);border-radius:3px;background:var(--field);padding:6px}
+  .spots button{border:1px solid var(--line);border-radius:2px;background:var(--panel);height:38px;cursor:pointer;font:inherit;font-size:10px;color:var(--muted);padding:0}
+  .spots button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .spots i{visibility:hidden}
+
+  input[type=range]{display:block;width:100%;margin:0;accent-color:var(--accent);height:26px}
+  .hint{font-size:12px;color:var(--muted);margin:10px 0 0}
+  .warn{font-size:13px;color:#8A3A2E;background:#FBEDEA;border:1px solid #F0D2CB;border-radius:3px;padding:10px;margin:0 0 14px}
+
+  .track{height:6px;border-radius:3px;background:var(--field);overflow:hidden;margin:0 0 8px}
+  .track i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+
+  .bar{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .bar button{width:100%;height:52px;border:0;border-radius:3px;background:var(--accent);color:#F2F7F6;font:inherit;font-weight:600;cursor:pointer}
+  .bar button:disabled{background:var(--field);color:#9AA3A1;cursor:not-allowed}
+  .bar p{margin:8px 0 0;font-size:12px;color:var(--muted);text-align:center;min-height:1em}
+  .nav{display:block;text-align:center;font-size:13px;color:var(--muted);padding:10px 0 0}
+
+  @media (min-width:900px){
+    .app{flex-direction:row;max-width:1200px;margin:0 auto}
+    .stage{flex:1 1 auto;padding:28px}
+    .side{flex:0 0 380px;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--line);min-height:0}
+    .panel{flex:1 1 auto;max-height:none}
+  }
+  @media (max-width:899px){ .side{display:contents} }
+</style>
+
+<div class="app">
+  <div class="stage"><canvas id="cv" width="1080" height="1080"></canvas></div>
+
+  <div class="side">
+    <div class="panel">
+      <p class="warn" id="unsupported" hidden>This browser can't record video. Try Chrome, or Safari on iOS 17 or newer.</p>
+
+      <div class="field">
+        <span class="lab">What are you posting?</span>
+        <div class="seg" id="mode">
+          <button data-v="compare" aria-pressed="false">Before/after</button>
+          <button data-v="single"  aria-pressed="false">One photo</button>
+          <button data-v="video"   aria-pressed="true">Video</button>
+        </div>
+      </div>
+
+      <div class="slot" id="slotV">
+        <label class="pick">
+          <span class="thumb" id="thumbV"></span>
+          <span class="txt"><b>Video</b><small id="nameV">Tap to choose a clip</small></span>
+          <input type="file" accept="video/*" data-key="video">
+        </label>
+        <button class="clear" data-key="video" hidden aria-label="Remove video">&times;</button>
+      </div>
+      <div class="slot" id="slotL">
+        <label class="pick">
+          <span class="thumb" id="thumbL"></span>
+          <span class="txt"><b>Logo</b><small id="nameL">PNG with transparency</small></span>
+          <input type="file" accept="image/*" data-key="logo">
+        </label>
+        <button class="clear" data-key="logo" hidden aria-label="Remove logo">&times;</button>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <span class="lab">Logo corner</span>
+        <div class="spots" id="logoSpot">
+          <button data-v="tl" aria-pressed="false">Top left</button>
+          <i></i>
+          <button data-v="tr" aria-pressed="false">Top right</button>
+          <i></i>
+          <button data-v="c"  aria-pressed="false">Middle</button>
+          <i></i>
+          <button data-v="bl" aria-pressed="false">Bottom left</button>
+          <i></i>
+          <button data-v="br" aria-pressed="true">Bottom right</button>
+        </div>
+        <p class="hint">Or drag the logo on the preview.</p>
+      </div>
+
+      <div class="field">
+        <span class="lab">Logo size <b id="logoSizeV">20</b></span>
+        <input type="range" id="logoSize" min="5" max="50" value="20">
+      </div>
+      <div class="field">
+        <span class="lab">Logo opacity <b id="logoAlphaV">100%</b></span>
+        <input type="range" id="logoAlpha" min="20" max="100" value="100">
+      </div>
+
+      <div class="field" id="progressWrap" hidden>
+        <div class="track"><i id="progressBar"></i></div>
+        <span class="lab" id="progressText">Recording…</span>
+      </div>
+
+      <p class="hint" id="about">The clip plays through once while it records, so a 30-second video takes 30 seconds. Keep this screen open while it runs.</p>
+    </div>
+
+    <div class="bar">
+      <button id="go" disabled>Add a video first</button>
+      <p id="status"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const clamp = n => Math.min(1, Math.max(0, n));
+const LOGO_KEY = 'beforeAfter.logo', VSET_KEY = 'beforeAfter.video';
+
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); return true; } catch(e){ return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+
+const video = document.createElement('video');
+video.playsInline = true;
+video.setAttribute('playsinline','');
+video.setAttribute('webkit-playsinline','');
+video.preload = 'auto';
+// offscreen rather than display:none — hidden elements may never load
+video.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';
+document.body.appendChild(video);
+
+let logo = null;
+let state = { pos:{x:1,y:1}, size:20, alpha:100 };
+let logoBox = null, recording = false, audioWired = null;
+
+/* ---------- capability check ---------- */
+const canRecord = !!(window.MediaRecorder && cv.captureStream);
+if (!canRecord) $('unsupported').hidden = false;
+
+const MIME = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4',
+              'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+  .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+
+/* ---------- settings ---------- */
+function saveState(){ store.set(VSET_KEY, JSON.stringify(state)); }
+function loadState(){
+  try {
+    const s = JSON.parse(store.get(VSET_KEY));
+    if (s && s.pos && typeof s.pos.x === 'number') state = s;
+  } catch(e){}
+  $('logoSize').value = state.size;   $('logoSizeV').textContent = state.size;
+  $('logoAlpha').value = state.alpha; $('logoAlphaV').textContent = state.alpha + '%';
+  syncSpots();
+}
+
+/* ---------- files ---------- */
+async function loadImage(src){
+  const img = new Image();
+  img.src = src;
+  await (img.decode ? img.decode() : new Promise(r => img.onload = r));
+  return img;
+}
+
+document.querySelectorAll('.pick input').forEach(inp => {
+  inp.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const key = e.target.dataset.key;
+
+    if (key === 'logo'){
+      const url = URL.createObjectURL(file);
+      logo = await loadImage(url);
+      fillSlot('L', url, file.name);
+      rememberLogo(logo, file.name);
+    } else {
+      $('status').textContent = 'Reading the video…';
+      video.src = URL.createObjectURL(file);
+      video.load();
+      const ok = await new Promise(res => {
+        let done = false;
+        const finish = v => { if (!done){ done = true; res(v); } };
+        const onMeta = () => finish(true);
+        video.addEventListener('loadedmetadata', onMeta, {once:true});
+        video.addEventListener('loadeddata', onMeta, {once:true});
+        video.addEventListener('error', () => finish(false), {once:true});
+        setTimeout(() => finish(!!video.videoWidth), 15000);
+      });
+      if (!ok || !video.videoWidth){
+        $('status').textContent = video.error && video.error.code === 4
+          ? 'This browser can\u2019t decode that format. Try an MP4.'
+          : 'The video could not be read here. On some pages the browser blocks local video — try it on the published site.';
+        return;
+      }
+      $('status').textContent = '';
+      sizeCanvas();
+      video.currentTime = 0.05;                 // show a real frame, not black
+      fillSlot('V', '', file.name);
+      $('thumbV').style.background = '#2A3133';
+    }
+    updateButton();
+    draw();
+  });
+});
+
+function fillSlot(sfx, url, name){
+  const slot = $('slot'+sfx);
+  if (url) $('thumb'+sfx).style.backgroundImage = 'url(' + url + ')';
+  $('name'+sfx).textContent = name;
+  slot.classList.add('filled');
+  slot.querySelector('.clear').hidden = false;
+}
+
+document.querySelectorAll('.clear').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.key, sfx = key === 'logo' ? 'L' : 'V';
+    const slot = $('slot'+sfx);
+    if (key === 'logo'){ logo = null; store.del(LOGO_KEY); }
+    else { video.pause(); video.removeAttribute('src'); video.load(); }
+    slot.classList.remove('filled');
+    slot.querySelector('.clear').hidden = true;
+    slot.querySelector('input').value = '';
+    $('thumb'+sfx).style.cssText = '';
+    $('name'+sfx).textContent = key === 'logo' ? 'PNG with transparency' : 'Tap to choose a clip';
+    updateButton();
+    draw();
+  });
+});
+
+function rememberLogo(img, name){
+  const max = 600, s = Math.min(1, max/img.width);
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  store.set(LOGO_KEY, JSON.stringify({ name, data:c.toDataURL('image/png') }));
+}
+
+async function restoreLogo(){
+  const raw = store.get(LOGO_KEY);
+  if (!raw) return;
+  try {
+    const { name, data } = JSON.parse(raw);
+    logo = await loadImage(data);
+    fillSlot('L', data, name || 'Saved logo');
+  } catch(e){ store.del(LOGO_KEY); }
+  draw();
+}
+
+/* ---------- canvas ---------- */
+function sizeCanvas(){
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w) return;
+  // Instagram tops out around 1080 on the short edge; don't upscale, don't ship 4K
+  const k = Math.min(1, 1080/Math.min(w,h), 1920/Math.max(w,h));
+  cv.width = Math.round(w*k/2)*2;      // even numbers keep H.264 encoders happy
+  cv.height = Math.round(h*k/2)*2;
+}
+
+function draw(){
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle = '#0E1112';
+  ctx.fillRect(0,0,W,H);
+
+  if (video.videoWidth && video.readyState >= 2){
+    ctx.drawImage(video, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#B4BCBA';
+    ctx.font = '500 ' + Math.round(W*0.035) + 'px "Inter", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Your video appears here', W/2, H/2);
+    ctx.textAlign = 'left';
+  }
+
+  logoBox = null;
+  if (logo){
+    const w = W * state.size/100, h = logo.height * (w / logo.width);
+    const m = W * 0.05;
+    const spanX = Math.max(0, W - 2*m - w), spanY = Math.max(0, H - 2*m - h);
+    const x = m + spanX*state.pos.x, y = m + spanY*state.pos.y;
+    ctx.save();
+    ctx.globalAlpha = state.alpha/100;
+    ctx.drawImage(logo, x, y, w, h);
+    ctx.restore();
+    logoBox = { x, y, w, h, m };
+  }
+}
+
+let rafId = null;
+function loop(){
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ---------- placement ---------- */
+const SPOT = { tl:{x:0,y:0}, tr:{x:1,y:0}, c:{x:0.5,y:0.5}, bl:{x:0,y:1}, br:{x:1,y:1} };
+function syncSpots(){
+  [...$('logoSpot').children].forEach(b => {
+    if (!b.dataset.v) return;
+    const p = SPOT[b.dataset.v];
+    b.setAttribute('aria-pressed', String(p.x === state.pos.x && p.y === state.pos.y));
+  });
+}
+$('logoSpot').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn || !btn.dataset.v) return;
+  state.pos = { ...SPOT[btn.dataset.v] };
+  syncSpots(); saveState(); draw();
+});
+
+let drag = null;
+function canvasPoint(e){
+  const r = cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height) };
+}
+cv.addEventListener('pointerdown', e => {
+  if (!logoBox || recording) return;
+  const p = canvasPoint(e), pad = cv.width*0.02;
+  if (p.x < logoBox.x-pad || p.x > logoBox.x+logoBox.w+pad ||
+      p.y < logoBox.y-pad || p.y > logoBox.y+logoBox.h+pad) return;
+  drag = { dx:p.x-logoBox.x, dy:p.y-logoBox.y, box:logoBox };
+  cv.setPointerCapture(e.pointerId);
+  cv.classList.add('dragging');
+  e.preventDefault();
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = canvasPoint(e), b = drag.box;
+  const spanX = Math.max(0, cv.width - 2*b.m - b.w), spanY = Math.max(0, cv.height - 2*b.m - b.h);
+  state.pos.x = spanX ? clamp((p.x - drag.dx - b.m)/spanX) : 0.5;
+  state.pos.y = spanY ? clamp((p.y - drag.dy - b.m)/spanY) : 0.5;
+  draw();
+});
+function endDrag(){
+  if (!drag) return;
+  drag = null;
+  cv.classList.remove('dragging');
+  syncSpots(); saveState();
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+$('logoSize').addEventListener('input', e => {
+  state.size = +e.target.value; $('logoSizeV').textContent = e.target.value;
+  saveState(); draw();
+});
+$('logoAlpha').addEventListener('input', e => {
+  state.alpha = +e.target.value; $('logoAlphaV').textContent = e.target.value + '%';
+  saveState(); draw();
+});
+
+/* ---------- recording ---------- */
+function updateButton(){
+  const ready = !!video.videoWidth && canRecord;
+  $('go').disabled = !ready || recording;
+  $('go').textContent = recording ? 'Stop and keep this much'
+    : !video.videoWidth ? 'Add a video first'
+    : !logo ? 'Export without a logo' : 'Add logo and export';
+}
+
+function wireAudio(stream){
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audioWired){
+      const ac = new AC();
+      const src = ac.createMediaElementSource(video);   // only allowed once per element
+      const dest = ac.createMediaStreamDestination();
+      src.connect(dest);                                 // to the recording, not the speakers
+      audioWired = { ac, dest };
+    }
+    if (audioWired.ac.state === 'suspended') audioWired.ac.resume();
+    audioWired.dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+  } catch(e){
+    $('status').textContent = 'Audio could not be captured — exporting the picture only.';
+  }
+}
+
+let recorder = null;
+$('go').addEventListener('click', async () => {
+  if (recording){ if (recorder) recorder.stop(); return; }
+  if (!video.videoWidth) return;
+
+  const stream = cv.captureStream(30);
+  wireAudio(stream);
+
+  const bits = Math.min(12e6, Math.max(4e6, cv.width * cv.height * 4));
+  try {
+    recorder = new MediaRecorder(stream, MIME ? { mimeType:MIME, videoBitsPerSecond:bits } : undefined);
+  } catch(e){
+    $('status').textContent = 'This browser refused to start recording.';
+    return;
+  }
+
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    recording = false;
+    cancelAnimationFrame(rafId); rafId = null;
+    video.pause();
+    $('progressWrap').hidden = true;
+    updateButton();
+    const type = recorder.mimeType || MIME || 'video/webm';
+    const ext = type.includes('mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(chunks, { type });
+    await deliver(blob, 'logo-video.' + ext);
+  };
+
+  recording = true;
+  updateButton();
+  $('progressWrap').hidden = false;
+  $('status').textContent = '';
+  video.currentTime = 0;
+  try { await video.play(); }
+  catch(e){ $('status').textContent = 'The video would not start playing.'; recording = false; updateButton(); return; }
+
+  if (!rafId) loop();
+  recorder.start(1000);
+});
+
+video.addEventListener('timeupdate', () => {
+  if (!recording || !video.duration) return;
+  const pct = Math.min(100, video.currentTime / video.duration * 100);
+  $('progressBar').style.width = pct + '%';
+  $('progressText').textContent = 'Recording — ' +
+    Math.ceil(video.duration - video.currentTime) + 's left';
+});
+video.addEventListener('ended', () => { if (recorder && recording) recorder.stop(); });
+
+async function deliver(blob, name){
+  const mb = (blob.size/1048576).toFixed(1);
+  const file = new File([blob], name, { type:blob.type });
+  if (navigator.canShare && navigator.canShare({ files:[file] })){
+    try { await navigator.share({ files:[file] }); $('status').textContent = 'Shared — ' + mb + ' MB.'; return; }
+    catch(err){ if (err.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  $('status').textContent = 'Saved ' + name + ' — ' + mb + ' MB.';
+}
+
+document.getElementById('mode').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn || btn.dataset.v === 'video') return;
+  location.href = 'index.html#' + btn.dataset.v;    // the photo app picks this up
+});
+
+/* ---------- boot ---------- */
+video.addEventListener('loadeddata', draw);
+video.addEventListener('seeked', draw);
+loadState();
+draw();
+restoreLogo();
+updateButton();
+if ('serviceWorker' in navigator)
+  addEventListener('load', () => { try { navigator.serviceWorker.register('sw.js').catch(()=>{}); } catch(e){} });
+</script>
